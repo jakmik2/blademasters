@@ -21,12 +21,12 @@ jobs:
       # TODO : CACHE RUST DEPS https://github.com/marketplace/actions/rust-cache
       - run: bash build_wasm.sh
       # Zip
-      - run: zip -r wbindgen.zip wbindgen
+      - run: zip -r out.zip out
       # Deploy
       - uses: manleydev/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: html5
-          ITCH_GAME: wiz-game
+          ITCH_GAME: blademasters
           ITCH_USER: Ianplatt
-          PACKAGE: wbindgen.zip
+          PACKAGE: out.zip
