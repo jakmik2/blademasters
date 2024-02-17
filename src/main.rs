@@ -29,10 +29,15 @@ fn main() {
         .insert_resource(EnemySpawner {
             counter: 0.0,
             num_enemies: 0,
+            num_enemies_killed: 0,
         })
         .insert_resource(TreatSpawner {
             counter: 200.0,
             num_treats: 0,
+        })
+        .insert_resource(PlayerData {
+            score: 0,
+            health: 10,
         })
         .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)
@@ -102,6 +107,41 @@ fn setup(
     // TODO
 
     commands.spawn(PlayerBundle::new());
+
+    // Add UI Display
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(10.0),
+                height: Val::Percent(10.0),
+                justify_content: JustifyContent::SpaceBetween,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle::from_section(
+                    "A TEST",
+                    TextStyle {
+                        font: asset_server.load("fonts/FFGhost-Regular.ttf"),
+                        font_size: 30.0,
+                        ..Default::default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::all(Val::Px(5.)),
+                    ..Default::default()
+                }),
+                Label,
+            ));
+        });
+}
+
+#[derive(Resource)]
+struct PlayerData {
+    score: usize,
+    health: usize,
 }
 
 fn move_player(
@@ -211,7 +251,10 @@ fn move_scythe(mut query: Query<&mut Transform, (With<Scythe>, Without<Player>)>
 
         let new_pos = rot_position.extend(0.0);
 
+        // Rotate Around Parent
         scythe_transform.translation = new_pos;
+        // Rotate actual scythe
+        scythe_transform.rotate(Quat::from_rotation_z(ROT_VEL * time.delta_seconds()));
     }
 }
 
@@ -329,6 +372,7 @@ fn hunt_player(
 #[derive(Resource)]
 struct EnemySpawner {
     num_enemies: usize,
+    num_enemies_killed: usize,
     counter: f32,
 }
 
