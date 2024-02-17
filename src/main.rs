@@ -2,12 +2,15 @@ mod utils;
 
 use std::f32::consts::PI;
 
-//Aabb2d
 use bevy::{
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
     sprite::MaterialMesh2dBundle,
 };
+
+use bevy_rand::prelude::*;
+use rand_core::RngCore;
+
 use utils::logging::*;
 
 const SCREEN_HEIGHT: f32 = 720.0;
@@ -23,9 +26,14 @@ fn main() {
             }),
             ..Default::default()
         }))
+        .insert_resource(EnemySpawner {
+            counter: 0.0,
+            num_enemies: 0,
+        })
+        .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, (move_player, move_scythe))
-        .add_systems(Update, add_scythe)
+        .add_systems(Update, (add_scythe, enemy_spawn))
         .run();
 }
 
@@ -164,7 +172,7 @@ impl ScytheBundle {
     }
 }
 
-const ROT_VEL: f32 = PI;
+const ROT_VEL: f32 = 3.0 * PI / 2.0;
 
 fn move_scythe(mut query: Query<&mut Transform, (With<Scythe>, Without<Player>)>, time: Res<Time>) {
     for mut scythe_transform in query.iter_mut() {
@@ -175,5 +183,91 @@ fn move_scythe(mut query: Query<&mut Transform, (With<Scythe>, Without<Player>)>
         let new_pos = rot_position.extend(0.0);
 
         scythe_transform.translation = new_pos;
+    }
+}
+
+#[derive(Component)]
+struct Enemy;
+
+#[derive(Bundle)]
+struct EnemyBundle {
+    collider: Collider,
+    sprite_bundle: SpriteBundle,
+    enemy: Enemy,
+}
+
+impl EnemyBundle {
+    fn new() -> Self {
+        Self {
+            sprite_bundle: SpriteBundle {
+                transform: Transform {
+                    translation: Vec3::ZERO,
+                    scale: Vec2::new(1.0, 1.0).extend(0.0),
+                    ..Default::default()
+                },
+                sprite: Sprite {
+                    color: Color::BISQUE,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            collider: Collider,
+            enemy: Enemy,
+        }
+    }
+
+    fn new_at(position: Vec2) -> Self {
+        console_log!("Spawning Enemy!");
+        Self {
+            sprite_bundle: SpriteBundle {
+                transform: Transform {
+                    translation: position.extend(0.0),
+                    scale: Vec2::new(30.0, 30.0).extend(0.0),
+                    ..Default::default()
+                },
+                sprite: Sprite {
+                    color: Color::BISQUE,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            collider: Collider,
+            enemy: Enemy,
+        }
+    }
+}
+
+#[derive(Resource)]
+struct EnemySpawner {
+    num_enemies: usize,
+    counter: f32,
+}
+
+const FIXED_SPAWN_INCREMENT: f32 = 5.0;
+
+fn enemy_spawn(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut enemy_spawner: ResMut<EnemySpawner>,
+    mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
+) {
+    // Update Timer
+    enemy_spawner.counter += time.delta_seconds();
+
+    // Check timer
+    if enemy_spawner.counter > FIXED_SPAWN_INCREMENT && enemy_spawner.num_enemies < 5 {
+        enemy_spawner.num_enemies += 1;
+        enemy_spawner.counter = 0.0;
+
+        // Construct random location
+        let pos = Vec2::new(
+            (rng.next_u32() as f32 % SCREEN_WIDTH) - SCREEN_WIDTH / 2.0,
+            rng.next_u32() as f32 % SCREEN_HEIGHT - SCREEN_HEIGHT / 2.0,
+        );
+
+        console_log!("{:?}", pos);
+
+        // Spawn an enemy in a random place!
+        commands.spawn(EnemyBundle::new_at(pos));
     }
 }
