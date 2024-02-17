@@ -32,7 +32,7 @@ fn main() {
         })
         .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)
-        .add_systems(FixedUpdate, (move_player, move_scythe))
+        .add_systems(FixedUpdate, (move_player, move_scythe, hunt_player))
         .add_systems(Update, (add_scythe, enemy_spawn))
         .run();
 }
@@ -123,21 +123,31 @@ fn move_player(
 }
 
 fn add_scythe(
-    keyboard_input: Res<Input<KeyCode>>,
-    query: Query<Entity, With<Player>>,
+    query: Query<(&Transform, Entity), (With<Player>, Without<Treat>)>,
+    treat_query: Query<(&Transform, Entity), (With<Treat>, Without<Player>)>,
     mut commands: Commands,
 ) {
-    let player_entity = query.single();
+    let (player_transform, player_entity) = query.single();
 
-    if keyboard_input.just_pressed(KeyCode::Q) {
-        // Add a scythe if q is pressed
-        console_log!("Adding a scythe");
+    // TODO : This is horribly optimized
+    for (treat_transform, treat) in treat_query.iter() {
+        if player_transform
+            .translation
+            .distance(treat_transform.translation)
+            > 10.0
+        {
+            // Destroy the treat
+            commands.entity(treat).despawn();
 
-        // Spawn scythe
-        let new_scythe = commands.spawn(ScytheBundle::new()).id();
+            // Add a scythe if q is pressed
+            console_log!("Adding a scythe");
 
-        // Insert as child
-        commands.entity(player_entity).push_children(&[new_scythe]);
+            // Spawn scythe
+            let new_scythe = commands.spawn(ScytheBundle::new()).id();
+
+            // Insert as child
+            commands.entity(player_entity).push_children(&[new_scythe]);
+        }
     }
 }
 
@@ -237,6 +247,35 @@ impl EnemyBundle {
     }
 }
 
+const ENEMY_SPEED: f32 = 2.0;
+
+fn hunt_player(
+    mut commands: Commands,
+    player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
+    mut enemy_query: Query<(&mut Transform, Entity), (With<Enemy>, Without<Player>)>,
+    mut enemy_spawner: ResMut<EnemySpawner>,
+) {
+    let player_transform = player_query.single();
+
+    for (mut enemy_transform, enemy) in enemy_query.iter_mut() {
+        if enemy_transform
+            .translation
+            .distance(player_transform.translation)
+            < 30.0
+        {
+            // Close enough to act
+            commands.entity(enemy).despawn();
+            enemy_spawner.num_enemies -= 1;
+        } else {
+            // Move Towards Player
+            let diff_vec = player_transform.translation - enemy_transform.translation;
+
+            let unit_vec = diff_vec.normalize();
+            enemy_transform.translation += unit_vec * ENEMY_SPEED;
+        }
+    }
+}
+
 #[derive(Resource)]
 struct EnemySpawner {
     num_enemies: usize,
@@ -269,5 +308,36 @@ fn enemy_spawn(
 
         // Spawn an enemy in a random place!
         commands.spawn(EnemyBundle::new_at(pos));
+    }
+}
+
+#[derive(Component)]
+struct Treat;
+
+#[derive(Bundle)]
+struct TreatBundle {
+    sprite_bundle: SpriteBundle,
+    collider: Collider,
+    treat: Treat,
+}
+
+impl TreatBundle {
+    fn new() -> Self {
+        Self {
+            sprite_bundle: SpriteBundle {
+                transform: Transform {
+                    translation: Vec3::ONE * 3.0,
+                    scale: Vec2::new(0.25, 0.25).extend(0.0),
+                    ..Default::default()
+                },
+                sprite: Sprite {
+                    color: Color::FUCHSIA,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            collider: Collider,
+            treat: Treat,
+        }
     }
 }
