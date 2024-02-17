@@ -39,6 +39,7 @@ fn main() {
             score: 0,
             health: 10,
         })
+        .add_event::<UpdatePlayerData>()
         .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, (move_player, move_scythe, hunt_player))
@@ -51,6 +52,7 @@ fn main() {
                 handle_scythe_collision,
             ),
         )
+        .add_systems(PostUpdate, update_ui)
         .run();
 }
 
@@ -94,11 +96,15 @@ impl PlayerBundle {
     }
 }
 
+#[derive(Component)]
+struct PlayerDisplay;
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
+    player_data: Res<PlayerData>,
 ) {
     // Camera
     commands.spawn(Camera2dBundle::default());
@@ -112,8 +118,8 @@ fn setup(
     commands
         .spawn(NodeBundle {
             style: Style {
-                width: Val::Percent(10.0),
-                height: Val::Percent(10.0),
+                width: Val::Percent(20.0),
+                height: Val::Percent(20.0),
                 justify_content: JustifyContent::SpaceBetween,
                 ..Default::default()
             },
@@ -122,7 +128,10 @@ fn setup(
         .with_children(|parent| {
             parent.spawn((
                 TextBundle::from_section(
-                    "A TEST",
+                    format!(
+                        "Health: {:?}\nScore: {:?}",
+                        player_data.health, player_data.score
+                    ),
                     TextStyle {
                         font: asset_server.load("fonts/FFGhost-Regular.ttf"),
                         font_size: 30.0,
@@ -134,6 +143,7 @@ fn setup(
                     ..Default::default()
                 }),
                 Label,
+                PlayerDisplay,
             ));
         });
 }
@@ -142,6 +152,19 @@ fn setup(
 struct PlayerData {
     score: usize,
     health: usize,
+}
+
+#[derive(Event, Default)]
+struct UpdatePlayerData;
+
+fn update_ui(mut query: Query<&mut Text, With<PlayerDisplay>>, player_data: Res<PlayerData>) {
+    let mut display_text = query.single_mut();
+
+    // Udpate displaye
+    display_text.sections[0].value = format!(
+        "Health: {:?}\nScore: {:?}",
+        player_data.health, player_data.score
+    );
 }
 
 fn move_player(
@@ -197,9 +220,6 @@ fn add_scythe(
 
             // Destroy the treat
             commands.entity(treat).despawn();
-
-            // Add a scythe if q is pressed
-            console_log!("Adding a scythe");
 
             // Spawn scythe
             let new_scythe = commands.spawn(ScytheBundle::new()).id();
@@ -264,6 +284,8 @@ fn handle_scythe_collision(
     scythe_query: Query<(&GlobalTransform, Entity), (With<Scythe>, Without<Enemy>)>,
     enemy_query: Query<(&GlobalTransform, Entity), (With<Enemy>, Without<Scythe>)>,
     mut enemy_spawner: ResMut<EnemySpawner>,
+    mut player_data: ResMut<PlayerData>,
+    mut update_data_events: EventWriter<UpdatePlayerData>,
 ) {
     for (scythe_transform, scythe_entity) in scythe_query.iter() {
         for (enemy_transform, enemy) in enemy_query.iter() {
@@ -279,6 +301,10 @@ fn handle_scythe_collision(
                 // Destroy enemy
                 commands.entity(enemy).despawn();
                 enemy_spawner.num_enemies -= 1;
+
+                // Increment Score
+                player_data.score += 1;
+                update_data_events.send_default();
 
                 // Handle scythe
                 // if scythe.0 <= 0 {
@@ -387,8 +413,8 @@ fn enemy_spawn(
     // Update Timer
     enemy_spawner.counter += time.delta_seconds();
 
-    // Check timer
-    if enemy_spawner.counter > FIXED_ENEMY_SPAWN && enemy_spawner.num_enemies < 10 {
+    // Check timer // TODO : Limit total number of enemies spawned at a time
+    if enemy_spawner.counter > FIXED_ENEMY_SPAWN {
         enemy_spawner.num_enemies += 1;
         enemy_spawner.counter = 0.0;
 
@@ -421,7 +447,7 @@ fn treat_spawn(
     treat_spawner.counter += time.delta_seconds();
 
     // Check timer
-    if treat_spawner.counter > FIXED_TREAT_SPAWN && treat_spawner.num_treats < 5 {
+    if treat_spawner.counter > FIXED_TREAT_SPAWN {
         treat_spawner.num_treats += 1;
         treat_spawner.counter = 0.0;
 
