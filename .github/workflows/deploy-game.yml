@@ -1,5 +1,5 @@
 name: deploy-game
-run-name: ${{ github.actor }} is deploying WizGame
+run-name: ${{ github.actor }} is deploying Blademasters
 on:
   push:
     branches:
