@@ -30,10 +30,22 @@ fn main() {
             counter: 0.0,
             num_enemies: 0,
         })
+        .insert_resource(TreatSpawner {
+            counter: 200.0,
+            num_treats: 0,
+        })
         .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, (move_player, move_scythe, hunt_player))
-        .add_systems(Update, (add_scythe, enemy_spawn))
+        .add_systems(
+            Update,
+            (
+                add_scythe,
+                enemy_spawn,
+                treat_spawn,
+                handle_scythe_collision,
+            ),
+        )
         .run();
 }
 
@@ -134,8 +146,15 @@ fn add_scythe(
         if player_transform
             .translation
             .distance(treat_transform.translation)
-            > 10.0
+            < 10.0
         {
+            console_log!(
+                "Treat distance to player: {:?}",
+                player_transform
+                    .translation
+                    .distance(treat_transform.translation)
+            );
+
             // Destroy the treat
             commands.entity(treat).despawn();
 
@@ -152,7 +171,7 @@ fn add_scythe(
 }
 
 #[derive(Component)]
-struct Scythe;
+struct Scythe(u8);
 
 #[derive(Bundle)]
 struct ScytheBundle {
@@ -177,12 +196,12 @@ impl ScytheBundle {
                 ..Default::default()
             },
             collider: Collider,
-            scythe: Scythe,
+            scythe: Scythe(2),
         }
     }
 }
 
-const ROT_VEL: f32 = 3.0 * PI / 2.0;
+const ROT_VEL: f32 = PI;
 
 fn move_scythe(mut query: Query<&mut Transform, (With<Scythe>, Without<Player>)>, time: Res<Time>) {
     for mut scythe_transform in query.iter_mut() {
@@ -193,6 +212,37 @@ fn move_scythe(mut query: Query<&mut Transform, (With<Scythe>, Without<Player>)>
         let new_pos = rot_position.extend(0.0);
 
         scythe_transform.translation = new_pos;
+    }
+}
+
+// TODO: This needs to be pivotted to be signals based
+fn handle_scythe_collision(
+    mut commands: Commands,
+    scythe_query: Query<(&GlobalTransform, Entity), (With<Scythe>, Without<Enemy>)>,
+    enemy_query: Query<(&GlobalTransform, Entity), (With<Enemy>, Without<Scythe>)>,
+    mut enemy_spawner: ResMut<EnemySpawner>,
+) {
+    for (scythe_transform, scythe_entity) in scythe_query.iter() {
+        for (enemy_transform, enemy) in enemy_query.iter() {
+            if scythe_transform
+                .translation()
+                .distance(enemy_transform.translation())
+                < 30.0
+            {
+                console_log!("Collision: {:?}", enemy);
+                // Decrement Scythe Durability
+                // scythe.0 -= 1;
+
+                // Destroy enemy
+                commands.entity(enemy).despawn();
+                enemy_spawner.num_enemies -= 1;
+
+                // Handle scythe
+                // if scythe.0 <= 0 {
+                commands.entity(scythe_entity).despawn();
+                // }
+            }
+        }
     }
 }
 
@@ -282,7 +332,7 @@ struct EnemySpawner {
     counter: f32,
 }
 
-const FIXED_SPAWN_INCREMENT: f32 = 5.0;
+const FIXED_ENEMY_SPAWN: f32 = 5.0;
 
 fn enemy_spawn(
     mut commands: Commands,
@@ -294,7 +344,7 @@ fn enemy_spawn(
     enemy_spawner.counter += time.delta_seconds();
 
     // Check timer
-    if enemy_spawner.counter > FIXED_SPAWN_INCREMENT && enemy_spawner.num_enemies < 5 {
+    if enemy_spawner.counter > FIXED_ENEMY_SPAWN && enemy_spawner.num_enemies < 10 {
         enemy_spawner.num_enemies += 1;
         enemy_spawner.counter = 0.0;
 
@@ -304,10 +354,42 @@ fn enemy_spawn(
             rng.next_u32() as f32 % SCREEN_HEIGHT - SCREEN_HEIGHT / 2.0,
         );
 
-        console_log!("{:?}", pos);
-
         // Spawn an enemy in a random place!
         commands.spawn(EnemyBundle::new_at(pos));
+    }
+}
+
+#[derive(Resource)]
+struct TreatSpawner {
+    num_treats: usize,
+    counter: f32,
+}
+
+const FIXED_TREAT_SPAWN: f32 = 7.0;
+
+fn treat_spawn(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut treat_spawner: ResMut<TreatSpawner>,
+    mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
+) {
+    // Update Timer
+    treat_spawner.counter += time.delta_seconds();
+
+    // Check timer
+    if treat_spawner.counter > FIXED_TREAT_SPAWN && treat_spawner.num_treats < 5 {
+        treat_spawner.num_treats += 1;
+        treat_spawner.counter = 0.0;
+
+        // Construct random location
+        let pos = Vec2::new(
+            (rng.next_u32() as f32 % SCREEN_WIDTH) - SCREEN_WIDTH / 2.0,
+            rng.next_u32() as f32 % SCREEN_HEIGHT - SCREEN_HEIGHT / 2.0,
+        );
+        console_log!("Spawning Treat! {:?}", pos);
+
+        // Spawn a Treat in a random place!
+        commands.spawn(TreatBundle::new_at(pos.extend(0.0)));
     }
 }
 
@@ -322,12 +404,12 @@ struct TreatBundle {
 }
 
 impl TreatBundle {
-    fn new() -> Self {
+    fn new_at(position: Vec3) -> Self {
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
-                    translation: Vec3::ONE * 3.0,
-                    scale: Vec2::new(0.25, 0.25).extend(0.0),
+                    translation: position,
+                    scale: Vec2::new(10.0, 10.0).extend(0.0),
                     ..Default::default()
                 },
                 sprite: Sprite {
