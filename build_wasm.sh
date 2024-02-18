@@ -9,6 +9,8 @@ cargo build --target wasm32-unknown-unknown --release --no-default-features
 mkdir -p out
 mkdir -p out/assets
 
+cp -r assets/* out/assets
+
 wasm-bindgen --no-typescript --target web \
     --out-dir ./out/ \
    --out-name "$PROJECT_NAME" \
