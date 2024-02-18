@@ -6,7 +6,7 @@ mod utils;
 use resources::*;
 use systems::*;
 
-use bevy::prelude::*;
+use bevy::{asset::AssetMetaCheck, prelude::*};
 
 use bevy_rand::prelude::*;
 
@@ -18,6 +18,7 @@ const SCREEN_WIDTH: f32 = 1280.0;
 fn main() {
     console_log!("It's working!");
     App::new()
+        .insert_resource(AssetMetaCheck::Never)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 canvas: Some("#combative-survivors-canvas".into()),
