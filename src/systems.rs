@@ -114,6 +114,7 @@ pub fn hunt_player(
             .translation
             .distance(player_transform.translation)
             < 30.0
+            && player_data.health != 0
         {
             // Close enough to act
             commands.entity(enemy).despawn();
