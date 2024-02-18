@@ -1315,6 +1315,7 @@ name = "combative-survivors"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_prng",
  "bevy_rand",
  "rand_core",
  "wasm-bindgen",
