@@ -46,7 +46,7 @@ impl Plugin for GamePlugin {
         })
         .insert_resource(PlayerData {
             score: 0,
-            health: 1,
+            health: 3,
         })
         .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)

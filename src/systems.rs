@@ -103,26 +103,38 @@ const ENEMY_SPEED: f32 = 2.0;
 pub fn hunt_player(
     mut commands: Commands,
     player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
-    mut enemy_query: Query<(&mut Transform, Entity), (With<Enemy>, Without<Player>)>,
+    mut enemy_query: Query<(&mut Transform, Entity, &Children), (With<Enemy>, Without<Player>)>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut player_data: ResMut<PlayerData>,
+    scythe_query: Query<&Scythe>,
 ) {
     let player_transform = player_query.single();
 
-    for (mut enemy_transform, enemy) in enemy_query.iter_mut() {
+    for (mut enemy_transform, enemy, children) in enemy_query.iter_mut() {
         let distance_to_player = enemy_transform
             .translation
             .distance(player_transform.translation);
 
         if distance_to_player < 30.0 && player_data.health != 0 {
             // Close enough to act
-            commands.entity(enemy).despawn();
+            commands.entity(enemy).despawn_recursive();
             enemy_spawner.num_enemies -= 1;
 
             // Take Damage
             player_data.health -= 1;
         } else if distance_to_player > 120.0 {
             // Move Towards Player
+            let diff_vec = player_transform.translation - enemy_transform.translation;
+
+            let unit_vec = diff_vec.normalize();
+            enemy_transform.translation += unit_vec * ENEMY_SPEED;
+        } else {
+            for child in children {
+                if scythe_query.get(*child).is_ok() {
+                    return;
+                }
+            }
+            // Move Towards Player : DON'T love duplicate code
             let diff_vec = player_transform.translation - enemy_transform.translation;
 
             let unit_vec = diff_vec.normalize();
@@ -284,9 +296,7 @@ pub fn handle_ally_scythes(
                 player_data.score += 1;
 
                 // Handle scythe
-                // if scythe.0 <= 0 {
                 commands.entity(scythe_entity).despawn();
-                // }
             }
         }
     }
