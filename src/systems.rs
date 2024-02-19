@@ -290,11 +290,11 @@ pub fn handle_ally_scythes(
         let mut collided = false;
 
         for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
-            if scythe_transform
-                .translation()
-                .distance(enemy_transform.translation())
-                < 30.0
-                && !collided
+            if !collided
+                && scythe_transform
+                    .translation()
+                    .distance(enemy_transform.translation())
+                    < 30.0
             {
                 collided = true;
                 console_log!("Collision: {:?}", enemy);
