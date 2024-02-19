@@ -14,6 +14,7 @@ impl Enemy {
         };
 
         // Configure the enemy when entity is added to the scene
+        console_log!("Adding scythes;");
         commands.entity(enemy).with_children(|parent| {
             parent.spawn((ScytheBundle::new_at(Vec2::NEG_ONE), TargetsPlayer));
             parent.spawn((ScytheBundle::new_at(Vec2::ONE), TargetsPlayer));
