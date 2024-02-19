@@ -285,13 +285,18 @@ pub fn handle_ally_scythes(
     mut player_data: ResMut<PlayerData>,
     mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
 ) {
-    for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
-        for (enemy_transform, enemy) in enemy_query.iter() {
-            if scythe_transform
-                .translation()
-                .distance(enemy_transform.translation())
-                < 30.0
+    for (enemy_transform, enemy) in enemy_query.iter() {
+        // Check if something has already hit this enemy
+        let mut collided = false;
+
+        for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
+            if !collided
+                && scythe_transform
+                    .translation()
+                    .distance(enemy_transform.translation())
+                    < 30.0
             {
+                collided = true;
                 console_log!("Collision: {:?}", enemy);
 
                 // Destroy enemy

@@ -50,19 +50,22 @@ impl Plugin for GamePlugin {
         })
         .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)
-        .add_systems(FixedUpdate, (move_player, hunt_player))
-        .add_systems(PreUpdate, move_scythe)
+        // Movement and collision detection need to be handled at a fixed step
         .add_systems(
-            Update,
+            FixedUpdate,
             (
-                Enemy::spawn,
-                enemy_spawner,
+                move_player,
+                hunt_player,
+                move_scythe,
                 handle_ally_scythes,
                 handle_enemy_scythes,
-                handle_player_health,
-                treat_spawn,
             ),
         )
-        .add_systems(PostUpdate, (update_ui, add_scythe));
+        // Make sure everything is spawned before any frame
+        .add_systems(PreUpdate, (treat_spawn, Enemy::spawn))
+        // Update As Frequently as possible
+        .add_systems(Update, handle_player_health)
+        // Late adds to ensure preframe resolution
+        .add_systems(PostUpdate, (update_ui, enemy_spawner, add_scythe));
     }
 }
