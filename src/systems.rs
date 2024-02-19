@@ -101,7 +101,7 @@ pub fn move_player(
     player_transform.translation = new_player_position;
 }
 
-const ENEMY_SPEED: f32 = 2.0;
+const ENEMY_SPEED: f32 = 1.25;
 
 pub fn hunt_player(
     mut commands: Commands,
@@ -158,7 +158,7 @@ pub fn add_scythe(
         if player_transform
             .translation
             .distance(treat_transform.translation)
-            < 10.0
+            < 20.0
         {
             console_log!(
                 "Treat distance to player: {:?}",
@@ -279,8 +279,11 @@ pub fn handle_ally_scythes(
         (With<Scythe>, With<TargetsEnemies>, Without<Enemy>),
     >,
     enemy_query: Query<(&GlobalTransform, Entity), (With<Enemy>, Without<Scythe>)>,
+    enemy_scythe_query: Query<&Children, With<Enemy>>,
     mut enemy_spawner: ResMut<EnemySpawner>,
+    mut treat_spawner: ResMut<TreatSpawner>,
     mut player_data: ResMut<PlayerData>,
+    mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
 ) {
     for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
         for (enemy_transform, enemy) in enemy_query.iter() {
@@ -292,7 +295,7 @@ pub fn handle_ally_scythes(
                 console_log!("Collision: {:?}", enemy);
 
                 // Destroy enemy
-                commands.entity(enemy).despawn();
+                commands.entity(enemy).despawn_recursive();
                 enemy_spawner.num_enemies -= 1;
 
                 // Increment Score
@@ -300,6 +303,24 @@ pub fn handle_ally_scythes(
 
                 // Handle scythe
                 commands.entity(scythe_entity).despawn();
+
+                // Spawn treat for each scythe
+                let Ok(children) = enemy_scythe_query.get(enemy) else {
+                    return;
+                };
+
+                for _ in children {
+                    treat_spawner.num_treats += 1;
+                    // Random Vec distance from death
+                    let random_offset = Vec3::new(
+                        rng.next_u32() as f32 % 30.0,
+                        rng.next_u32() as f32 % 30.0,
+                        0.0,
+                    );
+                    commands.spawn(TreatBundle::new_at(
+                        enemy_transform.translation() + random_offset,
+                    ));
+                }
             }
         }
     }
