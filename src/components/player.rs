@@ -24,7 +24,7 @@ impl PlayerBundle {
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
-                    translation: Vec2::ZERO.extend(0.0),
+                    translation: Vec2::new(200.0, 200.0).extend(0.0),
                     scale: Vec2::new(30.0, 30.0).extend(0.0),
                     ..Default::default()
                 },

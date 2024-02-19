@@ -3,6 +3,7 @@ mod resources;
 mod systems;
 mod utils;
 
+use components::prelude::Enemy;
 use resources::*;
 use systems::*;
 
@@ -49,9 +50,19 @@ impl Plugin for GamePlugin {
         })
         .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
         .add_systems(Startup, setup)
-        .add_systems(FixedUpdate, (move_player, move_scythe, hunt_player))
-        .add_systems(PreUpdate, (add_scythe, enemy_spawn, treat_spawn))
-        .add_systems(Update, (handle_scythe_collision, handle_player_health))
-        .add_systems(PostUpdate, update_ui);
+        .add_systems(FixedUpdate, (move_player, hunt_player))
+        .add_systems(PreUpdate, move_scythe)
+        .add_systems(
+            Update,
+            (
+                Enemy::spawn,
+                enemy_spawner,
+                handle_ally_scythes,
+                handle_enemy_scythes,
+                handle_player_health,
+                treat_spawn,
+            ),
+        )
+        .add_systems(PostUpdate, (update_ui, add_scythe));
     }
 }

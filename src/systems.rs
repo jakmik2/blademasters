@@ -157,10 +157,12 @@ pub fn add_scythe(
             commands.entity(treat).despawn();
 
             // Spawn scythe
-            let new_scythe = commands.spawn(ScytheBundle::new()).id();
+            // let new_scythe = commands.spawn((ScytheBundle::new(), TargetsEnemies)).id();
 
             // Insert as child
-            commands.entity(player_entity).push_children(&[new_scythe]);
+            commands.entity(player_entity).with_children(|parent| {
+                parent.spawn((ScytheBundle::new(), TargetsEnemies));
+            });
         }
     }
 }
@@ -230,7 +232,7 @@ pub fn handle_player_health(
 
 const FIXED_ENEMY_SPAWN: f32 = 5.0;
 
-pub fn enemy_spawn(
+pub fn enemy_spawner(
     mut commands: Commands,
     time: Res<Time>,
     mut enemy_spawner: ResMut<EnemySpawner>,
@@ -256,14 +258,17 @@ pub fn enemy_spawn(
 }
 
 // TODO: This needs to be pivotted to be signals based
-pub fn handle_scythe_collision(
+pub fn handle_ally_scythes(
     mut commands: Commands,
-    scythe_query: Query<(&GlobalTransform, Entity), (With<Scythe>, Without<Enemy>)>,
+    ally_scythe_query: Query<
+        (&GlobalTransform, Entity),
+        (With<Scythe>, With<TargetsEnemies>, Without<Enemy>),
+    >,
     enemy_query: Query<(&GlobalTransform, Entity), (With<Enemy>, Without<Scythe>)>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut player_data: ResMut<PlayerData>,
 ) {
-    for (scythe_transform, scythe_entity) in scythe_query.iter() {
+    for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
         for (enemy_transform, enemy) in enemy_query.iter() {
             if scythe_transform
                 .translation()
@@ -271,8 +276,6 @@ pub fn handle_scythe_collision(
                 < 30.0
             {
                 console_log!("Collision: {:?}", enemy);
-                // Decrement Scythe Durability
-                // scythe.0 -= 1;
 
                 // Destroy enemy
                 commands.entity(enemy).despawn();
@@ -286,6 +289,34 @@ pub fn handle_scythe_collision(
                 commands.entity(scythe_entity).despawn();
                 // }
             }
+        }
+    }
+}
+
+pub fn handle_enemy_scythes(
+    mut commands: Commands,
+    enemy_scythe_query: Query<
+        (&GlobalTransform, Entity),
+        (With<Scythe>, With<TargetsPlayer>, Without<Player>),
+    >,
+    player_query: Query<&GlobalTransform, (With<Player>, Without<Scythe>)>,
+    mut player_data: ResMut<PlayerData>,
+) {
+    let player_transform = player_query.single();
+
+    for (scythe_transform, scythe_entity) in enemy_scythe_query.iter() {
+        if scythe_transform
+            .translation()
+            .distance(player_transform.translation())
+            < 30.0
+        {
+            console_log!("Player taking damage");
+
+            // Decrement Player Health
+            player_data.health -= 1;
+
+            // Handle Scythe
+            commands.entity(scythe_entity).despawn();
         }
     }
 }

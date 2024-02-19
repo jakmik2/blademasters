@@ -2,10 +2,24 @@ use bevy::prelude::*;
 
 use crate::{console_log, utils::*};
 
-use super::Collider;
+use super::{prelude::ScytheBundle, Collider, TargetsPlayer};
 
 #[derive(Component)]
 pub struct Enemy;
+
+impl Enemy {
+    pub fn spawn(mut commands: Commands, enemy_query: Query<Entity, Added<Enemy>>) {
+        let Ok(enemy) = enemy_query.get_single() else {
+            return;
+        };
+
+        // Configure the enemy when entity is added to the scene
+        commands.entity(enemy).with_children(|parent| {
+            parent.spawn((ScytheBundle::new_at(Vec2::NEG_ONE), TargetsPlayer));
+            parent.spawn((ScytheBundle::new_at(Vec2::ONE), TargetsPlayer));
+        });
+    }
+}
 
 #[derive(Bundle)]
 pub struct EnemyBundle {
