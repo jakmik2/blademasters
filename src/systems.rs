@@ -110,19 +110,18 @@ pub fn hunt_player(
     let player_transform = player_query.single();
 
     for (mut enemy_transform, enemy) in enemy_query.iter_mut() {
-        if enemy_transform
+        let distance_to_player = enemy_transform
             .translation
-            .distance(player_transform.translation)
-            < 30.0
-            && player_data.health != 0
-        {
+            .distance(player_transform.translation);
+
+        if distance_to_player < 30.0 && player_data.health != 0 {
             // Close enough to act
             commands.entity(enemy).despawn();
             enemy_spawner.num_enemies -= 1;
 
             // Take Damage
             player_data.health -= 1;
-        } else {
+        } else if distance_to_player > 120.0 {
             // Move Towards Player
             let diff_vec = player_transform.translation - enemy_transform.translation;
 
