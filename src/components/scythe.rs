@@ -2,8 +2,8 @@ use bevy::prelude::*;
 
 use super::Collider;
 
-#[derive(Component)]
-pub struct Scythe(u8);
+#[derive(Component, Clone, Copy)]
+pub struct Scythe(pub u8);
 
 #[derive(Bundle)]
 pub struct ScytheBundle {
@@ -32,7 +32,7 @@ impl ScytheBundle {
         }
     }
 
-    pub fn new_at(rel_pos: Vec2) -> Self {
+    pub fn new_at(rel_pos: Vec2, str: u8) -> Self {
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
@@ -47,7 +47,7 @@ impl ScytheBundle {
                 ..Default::default()
             },
             collider: Collider,
-            scythe: Scythe(2),
+            scythe: Scythe(str),
         }
     }
 }

@@ -57,6 +57,8 @@ impl Plugin for GamePlugin {
                 move_player,
                 hunt_player,
                 move_scythe,
+                handle_flying_away,
+                handle_scythe_collision,
                 handle_ally_scythes,
                 handle_enemy_scythes,
             ),
