@@ -18,3 +18,9 @@ pub struct Collider;
 
 #[derive(Component)]
 pub struct PlayerDisplay;
+
+#[derive(Component)]
+pub struct TargetsEnemies;
+
+#[derive(Component)]
+pub struct TargetsPlayer;

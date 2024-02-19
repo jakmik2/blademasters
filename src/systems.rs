@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
+use bevy::utils::petgraph::algo::is_cyclic_directed;
 use bevy_prng::ChaCha8Rng;
 use bevy_rand::prelude::*;
 use rand_core::RngCore;
@@ -93,37 +94,50 @@ pub fn move_player(
     }
 
     let new_player_position = player_transform.translation
-        + direction.extend(0.0) * player_speed.0 * time.delta_seconds();
+        + direction.try_normalize().unwrap_or(Vec2::ZERO).extend(0.0)
+            * player_speed.0
+            * time.delta_seconds();
 
     player_transform.translation = new_player_position;
 }
 
-const ENEMY_SPEED: f32 = 2.0;
+const ENEMY_SPEED: f32 = 1.25;
 
 pub fn hunt_player(
     mut commands: Commands,
     player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
-    mut enemy_query: Query<(&mut Transform, Entity), (With<Enemy>, Without<Player>)>,
+    mut enemy_query: Query<(&mut Transform, Entity, &Children), (With<Enemy>, Without<Player>)>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut player_data: ResMut<PlayerData>,
+    scythe_query: Query<&Scythe>,
 ) {
     let player_transform = player_query.single();
 
-    for (mut enemy_transform, enemy) in enemy_query.iter_mut() {
-        if enemy_transform
+    for (mut enemy_transform, enemy, children) in enemy_query.iter_mut() {
+        let distance_to_player = enemy_transform
             .translation
-            .distance(player_transform.translation)
-            < 30.0
-            && player_data.health != 0
-        {
+            .distance(player_transform.translation);
+
+        if distance_to_player < 30.0 && player_data.health != 0 {
             // Close enough to act
-            commands.entity(enemy).despawn();
+            commands.entity(enemy).despawn_recursive();
             enemy_spawner.num_enemies -= 1;
 
             // Take Damage
             player_data.health -= 1;
-        } else {
+        } else if distance_to_player > 120.0 {
             // Move Towards Player
+            let diff_vec = player_transform.translation - enemy_transform.translation;
+
+            let unit_vec = diff_vec.normalize();
+            enemy_transform.translation += unit_vec * ENEMY_SPEED;
+        } else {
+            for child in children {
+                if scythe_query.get(*child).is_ok() {
+                    return;
+                }
+            }
+            // Move Towards Player : DON'T love duplicate code
             let diff_vec = player_transform.translation - enemy_transform.translation;
 
             let unit_vec = diff_vec.normalize();
@@ -144,7 +158,7 @@ pub fn add_scythe(
         if player_transform
             .translation
             .distance(treat_transform.translation)
-            < 10.0
+            < 20.0
         {
             console_log!(
                 "Treat distance to player: {:?}",
@@ -157,10 +171,12 @@ pub fn add_scythe(
             commands.entity(treat).despawn();
 
             // Spawn scythe
-            let new_scythe = commands.spawn(ScytheBundle::new()).id();
+            // let new_scythe = commands.spawn((ScytheBundle::new(), TargetsEnemies)).id();
 
             // Insert as child
-            commands.entity(player_entity).push_children(&[new_scythe]);
+            commands.entity(player_entity).with_children(|parent| {
+                parent.spawn((ScytheBundle::new(), TargetsEnemies));
+            });
         }
     }
 }
@@ -230,7 +246,7 @@ pub fn handle_player_health(
 
 const FIXED_ENEMY_SPAWN: f32 = 5.0;
 
-pub fn enemy_spawn(
+pub fn enemy_spawner(
     mut commands: Commands,
     time: Res<Time>,
     mut enemy_spawner: ResMut<EnemySpawner>,
@@ -256,14 +272,20 @@ pub fn enemy_spawn(
 }
 
 // TODO: This needs to be pivotted to be signals based
-pub fn handle_scythe_collision(
+pub fn handle_ally_scythes(
     mut commands: Commands,
-    scythe_query: Query<(&GlobalTransform, Entity), (With<Scythe>, Without<Enemy>)>,
+    ally_scythe_query: Query<
+        (&GlobalTransform, Entity),
+        (With<Scythe>, With<TargetsEnemies>, Without<Enemy>),
+    >,
     enemy_query: Query<(&GlobalTransform, Entity), (With<Enemy>, Without<Scythe>)>,
+    enemy_scythe_query: Query<&Children, With<Enemy>>,
     mut enemy_spawner: ResMut<EnemySpawner>,
+    mut treat_spawner: ResMut<TreatSpawner>,
     mut player_data: ResMut<PlayerData>,
+    mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
 ) {
-    for (scythe_transform, scythe_entity) in scythe_query.iter() {
+    for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
         for (enemy_transform, enemy) in enemy_query.iter() {
             if scythe_transform
                 .translation()
@@ -271,21 +293,63 @@ pub fn handle_scythe_collision(
                 < 30.0
             {
                 console_log!("Collision: {:?}", enemy);
-                // Decrement Scythe Durability
-                // scythe.0 -= 1;
 
                 // Destroy enemy
-                commands.entity(enemy).despawn();
+                commands.entity(enemy).despawn_recursive();
                 enemy_spawner.num_enemies -= 1;
 
                 // Increment Score
                 player_data.score += 1;
 
                 // Handle scythe
-                // if scythe.0 <= 0 {
                 commands.entity(scythe_entity).despawn();
-                // }
+
+                // Spawn treat for each scythe
+                let Ok(children) = enemy_scythe_query.get(enemy) else {
+                    return;
+                };
+
+                for _ in children {
+                    treat_spawner.num_treats += 1;
+                    // Random Vec distance from death
+                    let random_offset = Vec3::new(
+                        rng.next_u32() as f32 % 30.0,
+                        rng.next_u32() as f32 % 30.0,
+                        0.0,
+                    );
+                    commands.spawn(TreatBundle::new_at(
+                        enemy_transform.translation() + random_offset,
+                    ));
+                }
             }
+        }
+    }
+}
+
+pub fn handle_enemy_scythes(
+    mut commands: Commands,
+    enemy_scythe_query: Query<
+        (&GlobalTransform, Entity),
+        (With<Scythe>, With<TargetsPlayer>, Without<Player>),
+    >,
+    player_query: Query<&GlobalTransform, (With<Player>, Without<Scythe>)>,
+    mut player_data: ResMut<PlayerData>,
+) {
+    let player_transform = player_query.single();
+
+    for (scythe_transform, scythe_entity) in enemy_scythe_query.iter() {
+        if scythe_transform
+            .translation()
+            .distance(player_transform.translation())
+            < 30.0
+        {
+            console_log!("Player taking damage");
+
+            // Decrement Player Health
+            player_data.health -= 1;
+
+            // Handle Scythe
+            commands.entity(scythe_entity).despawn();
         }
     }
 }
