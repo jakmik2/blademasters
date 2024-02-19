@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
+use bevy::utils::petgraph::algo::is_cyclic_directed;
 use bevy_prng::ChaCha8Rng;
 use bevy_rand::prelude::*;
 use rand_core::RngCore;
@@ -93,7 +94,9 @@ pub fn move_player(
     }
 
     let new_player_position = player_transform.translation
-        + direction.extend(0.0) * player_speed.0 * time.delta_seconds();
+        + direction.try_normalize().unwrap_or(Vec2::ZERO).extend(0.0)
+            * player_speed.0
+            * time.delta_seconds();
 
     player_transform.translation = new_player_position;
 }
