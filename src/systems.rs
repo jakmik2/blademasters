@@ -180,10 +180,10 @@ pub fn add_scythe(
     }
 }
 
-const ROT_VEL: f32 = PI;
+const ROT_VEL: f32 = 3.0 * PI / 2.0;
 
 pub fn move_scythe(
-    mut query: Query<&mut Transform, (With<Scythe>, Without<Player>)>,
+    mut query: Query<&mut Transform, (With<Scythe>, Without<Player>, Without<FlyingAway>)>,
     time: Res<Time>,
 ) {
     for mut scythe_transform in query.iter_mut() {
@@ -275,14 +275,9 @@ pub fn handle_ally_scythes(
     mut commands: Commands,
     ally_scythe_query: Query<
         (&GlobalTransform, Entity),
-        (
-            With<Scythe>,
-            With<TargetsEnemies>,
-            Without<Enemy>,
-            Without<FlyingAway>,
-        ),
+        (With<Scythe>, With<TargetsEnemies>, Without<FlyingAway>),
     >,
-    enemy_query: Query<(&GlobalTransform, Entity), (With<Enemy>, Without<Scythe>)>,
+    enemy_query: Query<(&GlobalTransform, Entity), With<Enemy>>,
     enemy_scythe_query: Query<&Children, (With<Enemy>, Without<FlyingAway>)>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut treat_spawner: ResMut<TreatSpawner>,
@@ -339,12 +334,7 @@ pub fn handle_enemy_scythes(
     mut commands: Commands,
     enemy_scythe_query: Query<
         (&GlobalTransform, Entity),
-        (
-            With<Scythe>,
-            With<TargetsPlayer>,
-            Without<Player>,
-            Without<FlyingAway>,
-        ),
+        (With<Scythe>, With<TargetsPlayer>, Without<FlyingAway>),
     >,
     player_query: Query<&GlobalTransform, (With<Player>, Without<Scythe>)>,
     mut player_data: ResMut<PlayerData>,
@@ -375,8 +365,7 @@ pub fn handle_scythe_collision(
         (
             With<Scythe>,
             With<TargetsEnemies>,
-            With<Player>,
-            Without<Enemy>,
+            Without<TargetsPlayer>,
             Without<FlyingAway>,
         ),
     >,
@@ -385,8 +374,7 @@ pub fn handle_scythe_collision(
         (
             With<Scythe>,
             With<TargetsPlayer>,
-            With<Enemy>,
-            Without<Player>,
+            Without<TargetsEnemies>,
             Without<FlyingAway>,
         ),
     >,
@@ -402,7 +390,7 @@ pub fn handle_scythe_collision(
                 && a_scythe_gt
                     .translation()
                     .distance(e_scythe_gt.translation())
-                    < 20.0
+                    < 40.0
             {
                 console_log!("We getting here?");
                 // Don't want repeat collisions
@@ -426,8 +414,8 @@ pub fn handle_scythe_collision(
     }
 }
 
-const FLY_AWAY_TIMEOUT: f32 = 3.0;
-const FLY_AWAY_SPEED: f32 = 40.0;
+const FLY_AWAY_TIMEOUT: f32 = 0.25;
+const FLY_AWAY_SPEED: f32 = 10.0;
 
 pub fn handle_flying_away(
     mut commands: Commands,
@@ -441,7 +429,7 @@ pub fn handle_flying_away(
     for (mut flying_scythe_t, mut fly_tracker, scythe) in flying_away_scythe.iter_mut() {
         fly_tracker.counter += time.delta_seconds();
 
-        if fly_tracker.counter <= FLY_AWAY_TIMEOUT {
+        if fly_tracker.counter >= FLY_AWAY_TIMEOUT {
             // Destroy scythe
             commands.entity(scythe).despawn_recursive();
         } else {
