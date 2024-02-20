@@ -100,7 +100,7 @@ pub fn move_player(
     player_transform.translation = new_player_position;
 }
 
-const ENEMY_SPEED: f32 = 1.25;
+const ENEMY_SPEED: f32 = 45.0;
 
 pub fn hunt_player(
     mut commands: Commands,
@@ -112,6 +112,7 @@ pub fn hunt_player(
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut player_data: ResMut<PlayerData>,
     scythe_query: Query<&Scythe>,
+    time: Res<Time>,
 ) {
     let player_transform = player_query.single();
 
@@ -132,7 +133,7 @@ pub fn hunt_player(
             let diff_vec = player_transform.translation - enemy_transform.translation;
 
             let unit_vec = diff_vec.normalize();
-            enemy_transform.translation += unit_vec * ENEMY_SPEED;
+            enemy_transform.translation += unit_vec * ENEMY_SPEED * time.delta_seconds();
         } else if children.is_some() {
             for child in children.unwrap() {
                 if scythe_query.get(*child).is_ok() {
@@ -143,32 +144,28 @@ pub fn hunt_player(
             let diff_vec = player_transform.translation - enemy_transform.translation;
 
             let unit_vec = diff_vec.normalize();
-            enemy_transform.translation += unit_vec * ENEMY_SPEED;
+            enemy_transform.translation += unit_vec * ENEMY_SPEED * time.delta_seconds();
         }
     }
 }
 
+const TREAT_VEL: f32 = 500.0;
+
 pub fn add_scythe(
     query: Query<(&Transform, Entity), (With<Player>, Without<Treat>)>,
-    treat_query: Query<(&Transform, Entity), (With<Treat>, Without<Player>)>,
+    mut treat_query: Query<(&mut Transform, Entity), (With<Treat>, Without<Player>)>,
     mut commands: Commands,
+    time: Res<Time>,
 ) {
     let (player_transform, player_entity) = query.single();
 
     // TODO : This is horribly optimized
-    for (treat_transform, treat) in treat_query.iter() {
-        if player_transform
+    for (mut treat_transform, treat) in treat_query.iter_mut() {
+        let dist_to_player = player_transform
             .translation
-            .distance(treat_transform.translation)
-            < 20.0
-        {
-            console_log!(
-                "Treat distance to player: {:?}",
-                player_transform
-                    .translation
-                    .distance(treat_transform.translation)
-            );
+            .distance(treat_transform.translation);
 
+        if dist_to_player < 15.0 {
             // Destroy the treat
             commands.entity(treat).despawn();
 
@@ -176,6 +173,16 @@ pub fn add_scythe(
             commands.entity(player_entity).with_children(|parent| {
                 parent.spawn((ScytheBundle::new(), TargetsEnemies));
             });
+        } else if dist_to_player < 50.0 {
+            // Move towards player
+            // Move Towards Player
+            let diff_vec = treat_transform.translation - player_transform.translation;
+
+            let unit_vec = diff_vec.normalize();
+            treat_transform.translation -= unit_vec
+                * TREAT_VEL
+                * (1.0 / dist_to_player * dist_to_player)
+                * time.delta_seconds();
         }
     }
 }
