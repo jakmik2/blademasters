@@ -1,8 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
-use bevy_prng::ChaCha8Rng;
-use bevy_rand::prelude::*;
+use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
 
 use crate::components::{prelude::*, *};
@@ -69,26 +68,26 @@ pub fn update_ui(mut query: Query<&mut Text, With<PlayerDisplay>>, player_data: 
 }
 
 pub fn move_player(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Transform, &Speed), With<Player>>,
     time: Res<Time>,
 ) {
     let (mut player_transform, player_speed) = query.single_mut();
     let mut direction = Vec2::ZERO;
 
-    if keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left) {
+    if keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft) {
         direction.x -= 1.0;
     }
 
-    if keyboard_input.pressed(KeyCode::D) || keyboard_input.pressed(KeyCode::Right) {
+    if keyboard_input.pressed(KeyCode::KeyD) || keyboard_input.pressed(KeyCode::ArrowRight) {
         direction.x += 1.0;
     }
 
-    if keyboard_input.pressed(KeyCode::W) || keyboard_input.pressed(KeyCode::Up) {
+    if keyboard_input.pressed(KeyCode::KeyW) || keyboard_input.pressed(KeyCode::ArrowUp) {
         direction.y += 1.0;
     }
 
-    if keyboard_input.pressed(KeyCode::S) || keyboard_input.pressed(KeyCode::Down) {
+    if keyboard_input.pressed(KeyCode::KeyS) || keyboard_input.pressed(KeyCode::ArrowDown) {
         direction.y -= 1.0;
     }
 
@@ -256,7 +255,7 @@ pub fn enemy_spawner(
     mut commands: Commands,
     time: Res<Time>,
     mut enemy_spawner: ResMut<EnemySpawner>,
-    mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
+    mut rng: ResMut<GlobalEntropy<WyRand>>,
 ) {
     // Update Timer
     enemy_spawner.counter += time.delta_seconds();
@@ -311,7 +310,7 @@ pub fn handle_ally_scythes(
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut treat_spawner: ResMut<TreatSpawner>,
     mut player_data: ResMut<PlayerData>,
-    mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
+    mut rng: ResMut<GlobalEntropy<WyRand>>,
 ) {
     for (enemy_transform, enemy) in enemy_query.iter() {
         // Check if something has already hit this enemy
@@ -495,7 +494,7 @@ pub fn treat_spawn(
     mut commands: Commands,
     time: Res<Time>,
     mut treat_spawner: ResMut<TreatSpawner>,
-    mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
+    mut rng: ResMut<GlobalEntropy<WyRand>>,
 ) {
     // Update Timer
     treat_spawner.counter += time.delta_seconds();
