@@ -330,6 +330,7 @@ pub fn handle_ally_scythes(
                 // Handle scythe, reduce str
                 scythe.0 -= 1;
                 if scythe.0 <= 0 {
+                    console_log!("This is the error 1");
                     commands.entity(scythe_entity).insert(FlyingAway::new(
                         Vec2::new(
                             scythe_transform.translation().y,
@@ -438,11 +439,13 @@ pub fn handle_scythe_collision(
                 // See which scythe loses
                 // Evaluate flying away to loser, decrement strength of winner
                 if ally_scythe_str.0 >= enemy_scythe_str.0 {
+                    console_log!("This is the error 2");
                     commands.entity(enemy_scythe).insert(FlyingAway::new(
                         Vec2::new(e_scythe_t.translation.y, -e_scythe_t.translation.x).extend(0.0),
                     ));
                     ally_scythe_str.0 -= 1;
                 } else {
+                    console_log!("This is the error 3");
                     commands.entity(ally_scythe).insert(FlyingAway::new(
                         Vec2::new(a_scythe_t.translation.y, -a_scythe_t.translation.x).extend(0.0),
                     ));

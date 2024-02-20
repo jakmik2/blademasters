@@ -60,12 +60,12 @@ impl Plugin for GamePlugin {
         // Update As Frequently as possible
         // .add_systems(Update, (move_scythe, move_player, hunt_player))
         // Late adds to ensure preframe resolution
+        .add_systems(PostUpdate, handle_scythe_collision)
         .add_systems(
             Last,
             (
                 handle_flying_away,
                 handle_player_health,
-                handle_scythe_collision,
                 handle_ally_scythes,
                 handle_enemy_scythes,
                 update_ui,
