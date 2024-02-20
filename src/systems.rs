@@ -6,9 +6,10 @@ use rand_core::RngCore;
 
 use crate::components::{prelude::*, *};
 use crate::utils::logging::*;
-use crate::{console_log, resources::*, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{console_log, resources::*, GameState, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-pub fn setup(mut commands: Commands) {
+pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::Game);
     // Camera
     commands.spawn(Camera2dBundle::default());
 
