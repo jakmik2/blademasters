@@ -1,6 +1,7 @@
 mod components;
 mod resources;
 mod systems;
+mod ui;
 mod utils;
 
 use components::prelude::Enemy;
@@ -12,6 +13,7 @@ use bevy::{asset::AssetMetaCheck, prelude::*};
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy_rand::prelude::*;
 
+use ui::ScoreboardPlugin;
 use utils::fps_display::*;
 use utils::logging::*;
 
@@ -53,7 +55,9 @@ impl Plugin for GamePlugin {
             score: 0,
             health: 3,
         })
+        .init_state::<GameState>()
         .add_plugins(EntropyPlugin::<WyRand>::default())
+        .add_plugins(ScoreboardPlugin)
         .add_systems(Startup, setup)
         // Make sure everything is spawned before any frame
         .add_systems(
@@ -77,4 +81,11 @@ impl Plugin for GamePlugin {
             ),
         );
     }
+}
+
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+enum GameState {
+    #[default]
+    Game,
+    Pause,
 }

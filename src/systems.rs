@@ -8,53 +8,16 @@ use crate::components::{prelude::*, *};
 use crate::utils::logging::*;
 use crate::{console_log, resources::*, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-pub fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    asset_server: Res<AssetServer>,
-    player_data: Res<PlayerData>,
-) {
+pub fn setup(mut commands: Commands) {
     // Camera
     commands.spawn(Camera2dBundle::default());
 
     // Sound
     // TODO
 
+    // Add player
+    // TODO : Change to scene based start
     commands.spawn(PlayerBundle::new());
-
-    // Add UI Display
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(20.0),
-                height: Val::Percent(20.0),
-                justify_content: JustifyContent::SpaceBetween,
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|parent| {
-            parent.spawn((
-                TextBundle::from_section(
-                    format!(
-                        "Health: {:?}\nScore: {:?}",
-                        player_data.health, player_data.score
-                    ),
-                    TextStyle {
-                        font: asset_server.load("fonts/FFGhost-Regular.ttf"),
-                        font_size: 30.0,
-                        ..Default::default()
-                    },
-                )
-                .with_style(Style {
-                    margin: UiRect::all(Val::Px(5.)),
-                    ..Default::default()
-                }),
-                Label,
-                PlayerDisplay,
-            ));
-        });
 }
 
 pub fn update_ui(mut query: Query<&mut Text, With<PlayerDisplay>>, player_data: Res<PlayerData>) {
