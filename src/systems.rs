@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
-use bevy::utils::petgraph::algo::is_cyclic_directed;
 use bevy_prng::ChaCha8Rng;
 use bevy_rand::prelude::*;
 use rand_core::RngCore;
@@ -106,14 +105,17 @@ const ENEMY_SPEED: f32 = 1.25;
 pub fn hunt_player(
     mut commands: Commands,
     player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
-    mut enemy_query: Query<(&mut Transform, Entity, &Children), (With<Enemy>, Without<Player>)>,
+    mut enemy_query: Query<
+        (&mut Transform, Entity, Option<&Children>),
+        (With<Enemy>, Without<Player>),
+    >,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut player_data: ResMut<PlayerData>,
     scythe_query: Query<&Scythe>,
 ) {
     let player_transform = player_query.single();
 
-    for (mut enemy_transform, enemy, children) in enemy_query.iter_mut() {
+    'enemies: for (mut enemy_transform, enemy, children) in enemy_query.iter_mut() {
         let distance_to_player = enemy_transform
             .translation
             .distance(player_transform.translation);
@@ -131,10 +133,10 @@ pub fn hunt_player(
 
             let unit_vec = diff_vec.normalize();
             enemy_transform.translation += unit_vec * ENEMY_SPEED;
-        } else {
-            for child in children {
+        } else if children.is_some() {
+            for child in children.unwrap() {
                 if scythe_query.get(*child).is_ok() {
-                    return;
+                    continue 'enemies;
                 }
             }
             // Move Towards Player : DON'T love duplicate code
@@ -170,9 +172,6 @@ pub fn add_scythe(
             // Destroy the treat
             commands.entity(treat).despawn();
 
-            // Spawn scythe
-            // let new_scythe = commands.spawn((ScytheBundle::new(), TargetsEnemies)).id();
-
             // Insert as child
             commands.entity(player_entity).with_children(|parent| {
                 parent.spawn((ScytheBundle::new(), TargetsEnemies));
@@ -181,10 +180,10 @@ pub fn add_scythe(
     }
 }
 
-const ROT_VEL: f32 = PI;
+const ROT_VEL: f32 = 3.0 * PI / 2.0;
 
 pub fn move_scythe(
-    mut query: Query<&mut Transform, (With<Scythe>, Without<Player>)>,
+    mut query: Query<&mut Transform, (With<Scythe>, Without<Player>, Without<FlyingAway>)>,
     time: Res<Time>,
 ) {
     for mut scythe_transform in query.iter_mut() {
@@ -261,10 +260,19 @@ pub fn enemy_spawner(
         enemy_spawner.counter = 0.0;
 
         // Construct random location
-        let pos = Vec2::new(
+        let mut pos = Vec2::new(
             (rng.next_u32() as f32 % SCREEN_WIDTH) - SCREEN_WIDTH / 2.0,
             rng.next_u32() as f32 % SCREEN_HEIGHT - SCREEN_HEIGHT / 2.0,
         );
+
+        // Only an edge
+        pos = match rng.next_u32() % 4 {
+            0 => Vec2::new(pos.x, SCREEN_WIDTH / 2.0),
+            1 => Vec2::new(pos.x, -SCREEN_WIDTH / 2.0),
+            2 => Vec2::new(pos.x, SCREEN_HEIGHT / 2.0),
+            3 => Vec2::new(pos.x, -SCREEN_HEIGHT / 2.0),
+            _ => Vec2::ZERO, // SHOULD BE UNREACHABLE
+        };
 
         // Spawn an enemy in a random place!
         commands.spawn(EnemyBundle::new_at(pos));
@@ -274,11 +282,24 @@ pub fn enemy_spawner(
 // TODO: This needs to be pivotted to be signals based
 pub fn handle_ally_scythes(
     mut commands: Commands,
-    ally_scythe_query: Query<
-        (&GlobalTransform, Entity),
-        (With<Scythe>, With<TargetsEnemies>, Without<Enemy>),
+    scythes_query: Query<
+        &Scythe,
+        (
+            With<TargetsPlayer>,
+            Without<TargetsEnemies>,
+            Without<FlyingAway>,
+        ),
     >,
-    enemy_query: Query<(&GlobalTransform, Entity), (With<Enemy>, Without<Scythe>)>,
+    mut ally_scythe_query: Query<
+        (&GlobalTransform, &mut Scythe, Entity),
+        (
+            With<Scythe>,
+            With<TargetsEnemies>,
+            Without<TargetsPlayer>,
+            Without<FlyingAway>,
+        ),
+    >,
+    enemy_query: Query<(&GlobalTransform, Entity), With<Enemy>>,
     enemy_scythe_query: Query<&Children, With<Enemy>>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut treat_spawner: ResMut<TreatSpawner>,
@@ -289,7 +310,7 @@ pub fn handle_ally_scythes(
         // Check if something has already hit this enemy
         let mut collided = false;
 
-        for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
+        for (scythe_transform, mut scythe, scythe_entity) in ally_scythe_query.iter_mut() {
             if !collided
                 && scythe_transform
                     .translation()
@@ -306,15 +327,25 @@ pub fn handle_ally_scythes(
                 // Increment Score
                 player_data.score += 1;
 
-                // Handle scythe
-                commands.entity(scythe_entity).despawn();
+                // Handle scythe, reduce str
+                scythe.0 -= 1;
+                if scythe.0 <= 0 {
+                    commands.entity(scythe_entity).despawn();
+                }
 
                 // Spawn treat for each scythe
                 let Ok(children) = enemy_scythe_query.get(enemy) else {
                     return;
                 };
 
-                for _ in children {
+                'spawn_scythe_treats: for child in children {
+                    // 50 50 chance of spawning one of the children
+                    if rng.next_u32() % 2 == 0 {
+                        continue 'spawn_scythe_treats;
+                    }
+
+                    let despawning_scythe = scythes_query.get(*child).unwrap_or(&Scythe(1));
+
                     treat_spawner.num_treats += 1;
                     // Random Vec distance from death
                     let random_offset = Vec3::new(
@@ -324,6 +355,7 @@ pub fn handle_ally_scythes(
                     );
                     commands.spawn(TreatBundle::new_at(
                         enemy_transform.translation() + random_offset,
+                        despawning_scythe.0,
                     ));
                 }
             }
@@ -335,7 +367,7 @@ pub fn handle_enemy_scythes(
     mut commands: Commands,
     enemy_scythe_query: Query<
         (&GlobalTransform, Entity),
-        (With<Scythe>, With<TargetsPlayer>, Without<Player>),
+        (With<Scythe>, With<TargetsPlayer>, Without<FlyingAway>),
     >,
     player_query: Query<&GlobalTransform, (With<Player>, Without<Scythe>)>,
     mut player_data: ResMut<PlayerData>,
@@ -355,6 +387,87 @@ pub fn handle_enemy_scythes(
 
             // Handle Scythe
             commands.entity(scythe_entity).despawn();
+        }
+    }
+}
+
+pub fn handle_scythe_collision(
+    mut commands: Commands,
+    mut ally_scythe_query: Query<
+        (&GlobalTransform, &Transform, &mut Scythe, Entity),
+        (
+            With<Scythe>,
+            With<TargetsEnemies>,
+            Without<TargetsPlayer>,
+            Without<FlyingAway>,
+        ),
+    >,
+    mut enemy_scythe_query: Query<
+        (&GlobalTransform, &Transform, &mut Scythe, Entity),
+        (
+            With<Scythe>,
+            With<TargetsPlayer>,
+            Without<TargetsEnemies>,
+            Without<FlyingAway>,
+        ),
+    >,
+) {
+    for (a_scythe_gt, a_scythe_t, mut ally_scythe_str, ally_scythe) in ally_scythe_query.iter_mut()
+    {
+        let mut collided = false;
+
+        for (e_scythe_gt, e_scythe_t, mut enemy_scythe_str, enemy_scythe) in
+            enemy_scythe_query.iter_mut()
+        {
+            if !collided
+                && a_scythe_gt
+                    .translation()
+                    .distance(e_scythe_gt.translation())
+                    < 40.0
+            {
+                // Don't want repeat collisions
+                collided = true;
+
+                // See which scythe loses
+                // Evaluate flying away to loser, decrement strength of winner
+                if ally_scythe_str.0 >= enemy_scythe_str.0 {
+                    commands.entity(enemy_scythe).insert(FlyingAway::new(
+                        Vec2::new(e_scythe_t.translation.y, -e_scythe_t.translation.x).extend(0.0),
+                    ));
+                    ally_scythe_str.0 -= 1;
+                } else {
+                    commands.entity(ally_scythe).insert(FlyingAway::new(
+                        Vec2::new(a_scythe_t.translation.y, -a_scythe_t.translation.x).extend(0.0),
+                    ));
+                    enemy_scythe_str.0 -= 1;
+                }
+            }
+        }
+    }
+}
+
+const FLY_AWAY_TIMEOUT: f32 = 0.25;
+const FLY_AWAY_SPEED: f32 = 10.0;
+
+pub fn handle_flying_away(
+    mut commands: Commands,
+    mut flying_away_scythe: Query<
+        (&mut Transform, &mut FlyingAway, Entity),
+        (With<Scythe>, With<FlyingAway>),
+    >,
+    time: Res<Time>,
+) {
+    // Fly away til time out
+    for (mut flying_scythe_t, mut fly_tracker, scythe) in flying_away_scythe.iter_mut() {
+        fly_tracker.counter += time.delta_seconds();
+
+        if fly_tracker.counter >= FLY_AWAY_TIMEOUT {
+            // Destroy scythe
+            commands.entity(scythe).despawn_recursive();
+        } else {
+            // Move the homie
+            flying_scythe_t.translation +=
+                fly_tracker.trajectory * FLY_AWAY_SPEED * time.delta_seconds();
         }
     }
 }
@@ -383,6 +496,9 @@ pub fn treat_spawn(
         console_log!("Spawning Treat! {:?}", pos);
 
         // Spawn a Treat in a random place!
-        commands.spawn(TreatBundle::new_at(pos.extend(0.0)));
+        commands.spawn(TreatBundle::new_at(
+            pos.extend(0.0),
+            (rng.next_u32() % 4) as u8,
+        ));
     }
 }

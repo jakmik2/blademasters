@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use super::*;
 
 #[derive(Component)]
-pub struct Treat;
+pub struct Treat(pub u8);
 
 #[derive(Bundle)]
 pub struct TreatBundle {
@@ -13,7 +13,7 @@ pub struct TreatBundle {
 }
 
 impl TreatBundle {
-    pub fn new_at(position: Vec3) -> Self {
+    pub fn new_at(position: Vec3, str: u8) -> Self {
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
@@ -28,7 +28,7 @@ impl TreatBundle {
                 ..Default::default()
             },
             collider: Collider,
-            treat: Treat,
+            treat: Treat(str),
         }
     }
 }
