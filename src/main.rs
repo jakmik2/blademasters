@@ -9,9 +9,10 @@ use systems::*;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
 
-// use bevy_prng::WyRand;
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy_rand::prelude::*;
 
+use utils::fps_display::*;
 use utils::logging::*;
 
 const SCREEN_HEIGHT: f32 = 720.0;
@@ -28,6 +29,9 @@ fn main() {
             }),
             ..Default::default()
         }))
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
+        .add_systems(Startup, setup_fps_counter)
+        .add_systems(Update, (fps_text_update_system, fps_counter_showhide))
         .add_plugins(GamePlugin)
         .run();
 }
