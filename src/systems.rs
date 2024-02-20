@@ -260,10 +260,19 @@ pub fn enemy_spawner(
         enemy_spawner.counter = 0.0;
 
         // Construct random location
-        let pos = Vec2::new(
+        let mut pos = Vec2::new(
             (rng.next_u32() as f32 % SCREEN_WIDTH) - SCREEN_WIDTH / 2.0,
             rng.next_u32() as f32 % SCREEN_HEIGHT - SCREEN_HEIGHT / 2.0,
         );
+
+        // Only an edge
+        pos = match rng.next_u32() % 4 {
+            0 => Vec2::new(pos.x, SCREEN_WIDTH / 2.0),
+            1 => Vec2::new(pos.x, -SCREEN_WIDTH / 2.0),
+            2 => Vec2::new(pos.x, SCREEN_HEIGHT / 2.0),
+            3 => Vec2::new(pos.x, -SCREEN_HEIGHT / 2.0),
+            _ => Vec2::ZERO, // SHOULD BE UNREACHABLE
+        };
 
         // Spawn an enemy in a random place!
         commands.spawn(EnemyBundle::new_at(pos));
@@ -273,12 +282,25 @@ pub fn enemy_spawner(
 // TODO: This needs to be pivotted to be signals based
 pub fn handle_ally_scythes(
     mut commands: Commands,
-    ally_scythe_query: Query<
-        (&GlobalTransform, Entity),
-        (With<Scythe>, With<TargetsEnemies>, Without<FlyingAway>),
+    scythes_query: Query<
+        &Scythe,
+        (
+            With<TargetsPlayer>,
+            Without<TargetsEnemies>,
+            Without<FlyingAway>,
+        ),
+    >,
+    mut ally_scythe_query: Query<
+        (&GlobalTransform, &mut Scythe, Entity),
+        (
+            With<Scythe>,
+            With<TargetsEnemies>,
+            Without<TargetsPlayer>,
+            Without<FlyingAway>,
+        ),
     >,
     enemy_query: Query<(&GlobalTransform, Entity), With<Enemy>>,
-    enemy_scythe_query: Query<&Children, (With<Enemy>, Without<FlyingAway>)>,
+    enemy_scythe_query: Query<&Children, With<Enemy>>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut treat_spawner: ResMut<TreatSpawner>,
     mut player_data: ResMut<PlayerData>,
@@ -288,7 +310,7 @@ pub fn handle_ally_scythes(
         // Check if something has already hit this enemy
         let mut collided = false;
 
-        for (scythe_transform, scythe_entity) in ally_scythe_query.iter() {
+        for (scythe_transform, mut scythe, scythe_entity) in ally_scythe_query.iter_mut() {
             if !collided
                 && scythe_transform
                     .translation()
@@ -305,15 +327,25 @@ pub fn handle_ally_scythes(
                 // Increment Score
                 player_data.score += 1;
 
-                // Handle scythe
-                commands.entity(scythe_entity).despawn();
+                // Handle scythe, reduce str
+                scythe.0 -= 1;
+                if scythe.0 <= 0 {
+                    commands.entity(scythe_entity).despawn();
+                }
 
                 // Spawn treat for each scythe
                 let Ok(children) = enemy_scythe_query.get(enemy) else {
                     return;
                 };
 
-                for _ in children {
+                'spawn_scythe_treats: for child in children {
+                    // 50 50 chance of spawning one of the children
+                    if rng.next_u32() % 2 == 0 {
+                        continue 'spawn_scythe_treats;
+                    }
+
+                    let despawning_scythe = scythes_query.get(*child).unwrap_or(&Scythe(1));
+
                     treat_spawner.num_treats += 1;
                     // Random Vec distance from death
                     let random_offset = Vec3::new(
@@ -323,6 +355,7 @@ pub fn handle_ally_scythes(
                     );
                     commands.spawn(TreatBundle::new_at(
                         enemy_transform.translation() + random_offset,
+                        despawning_scythe.0,
                     ));
                 }
             }
@@ -392,7 +425,6 @@ pub fn handle_scythe_collision(
                     .distance(e_scythe_gt.translation())
                     < 40.0
             {
-                console_log!("We getting here?");
                 // Don't want repeat collisions
                 collided = true;
 
@@ -464,6 +496,9 @@ pub fn treat_spawn(
         console_log!("Spawning Treat! {:?}", pos);
 
         // Spawn a Treat in a random place!
-        commands.spawn(TreatBundle::new_at(pos.extend(0.0)));
+        commands.spawn(TreatBundle::new_at(
+            pos.extend(0.0),
+            (rng.next_u32() % 4) as u8,
+        ));
     }
 }
