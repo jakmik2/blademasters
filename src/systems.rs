@@ -330,7 +330,14 @@ pub fn handle_ally_scythes(
                 // Handle scythe, reduce str
                 scythe.0 -= 1;
                 if scythe.0 <= 0 {
-                    commands.entity(scythe_entity).despawn();
+                    commands.entity(scythe_entity).insert(FlyingAway::new(
+                        Vec2::new(
+                            scythe_transform.translation().y,
+                            -scythe_transform.translation().x,
+                        )
+                        .normalize()
+                        .extend(0.0),
+                    ));
                 }
 
                 // Spawn treat for each scythe
