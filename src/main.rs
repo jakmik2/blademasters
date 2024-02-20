@@ -9,6 +9,7 @@ use systems::*;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
 
+// use bevy_prng::WyRand;
 use bevy_rand::prelude::*;
 
 use utils::logging::*;
@@ -48,7 +49,7 @@ impl Plugin for GamePlugin {
             score: 0,
             health: 3,
         })
-        .add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
+        .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_systems(Startup, setup)
         // Make sure everything is spawned before any frame
         .add_systems(

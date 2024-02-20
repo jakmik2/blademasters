@@ -1,8 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
-use bevy_prng::ChaCha8Rng;
-use bevy_rand::resource::GlobalEntropy;
+use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
 
 use crate::{console_log, utils::*};
@@ -16,7 +15,7 @@ impl Enemy {
     pub fn spawn(
         mut commands: Commands,
         enemy_query: Query<Entity, Added<Enemy>>,
-        mut rng: ResMut<GlobalEntropy<ChaCha8Rng>>,
+        mut rng: ResMut<GlobalEntropy<WyRand>>,
     ) {
         let Ok(enemy) = enemy_query.get_single() else {
             return;

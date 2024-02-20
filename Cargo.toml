@@ -6,11 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "~0.12.1" }
+bevy = { version = "~0.13" }
 wasm-bindgen = "0.2.91"
 rand_core = "0.6"
-bevy_rand = { version = "0.4", features = ["rand_chacha"] }
-bevy_prng = "0.2.0"
+bevy_rand = { version = "~0.5.0", features = ["rand_chacha", "wyrand"] }
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
