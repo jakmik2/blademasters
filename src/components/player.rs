@@ -15,6 +15,8 @@ pub struct PlayerBundle {
     player: Player,
     speed: Speed,
     sprite_bundle: SpriteBundle,
+    xp: Xp,
+    health: Health,
     collider: Collider,
 }
 
@@ -37,6 +39,8 @@ impl PlayerBundle {
             collider: Collider,
             player: Player,
             speed: Speed(150.0),
+            health: Health(10),
+            xp: Xp(0),
         }
     }
 }

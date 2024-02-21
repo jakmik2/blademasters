@@ -79,7 +79,7 @@ pub fn setup_pause_menu(
                 ))
                 .with_children(|parent| {
                     parent.spawn((TextBundle::from_section(
-                        "Button 2",
+                        "Faster Swords",
                         button_text_style.clone(),
                     ),));
                 });
@@ -119,7 +119,6 @@ pub fn levelup_action(
 ) {
     // Hard coding for the time being
     for (interaction, level_up_action) in &interaction_query {
-        console_log!("Huh");
         if *interaction == Interaction::Pressed {
             match level_up_action {
                 LevelButtonAction::First => level_options.treat_pick_up_radius += 1,

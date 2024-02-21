@@ -1,12 +1,28 @@
 use bevy::prelude::*;
 
-use crate::{components::PlayerDisplay, PlayerData};
+use crate::{
+    components::{prelude::*, *},
+    Score,
+};
 
 fn add_score_board(
     mut commands: Commands,
+    player_query: Query<(Option<&Xp>, Option<&Health>)>,
     asset_server: ResMut<AssetServer>,
-    player_data: Res<PlayerData>,
+    score: Res<Score>,
 ) {
+    let (unpacked_xp, unpacked_health) = player_query.single();
+
+    let xp = match unpacked_xp {
+        Some(x) => x.0,
+        None => 0,
+    };
+
+    let health = match unpacked_health {
+        Some(x) => x.0,
+        None => 0,
+    };
+
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -20,10 +36,7 @@ fn add_score_board(
         .with_children(|parent| {
             parent.spawn((
                 TextBundle::from_section(
-                    format!(
-                        "Health: {:?}\nScore: {:?}",
-                        player_data.health, player_data.score
-                    ),
+                    format!("Health: {:?}\nScore: {:?}\nXp: {:?}", health, score.0, xp),
                     TextStyle {
                         font: asset_server.load("fonts/FFGhost-Regular.ttf"),
                         font_size: 30.0,

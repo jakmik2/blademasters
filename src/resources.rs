@@ -1,10 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Resource)]
-pub struct PlayerData {
-    pub score: usize,
-    pub health: usize,
-}
+pub struct Score(pub usize);
 
 #[derive(Resource)]
 pub struct EnemySpawner {

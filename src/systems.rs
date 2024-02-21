@@ -19,13 +19,20 @@ pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>
     commands.spawn(PlayerBundle::new());
 }
 
-pub fn update_ui(mut query: Query<&mut Text, With<PlayerDisplay>>, player_data: Res<PlayerData>) {
+pub fn update_ui(
+    mut query: Query<&mut Text, With<PlayerDisplay>>,
+    player_data_query: Query<(&Xp, &Health), With<Player>>,
+    score: Res<Score>,
+) {
     let mut display_text = query.single_mut();
+    let Ok((xp, health)) = player_data_query.get_single() else {
+        return;
+    };
 
     // Udpate displaye
     display_text.sections[0].value = format!(
-        "Health: {:?}\nScore: {:?}",
-        player_data.health, player_data.score
+        "Health: {:?}\nScore: {:?}\nXp: {:?}",
+        health.0, score.0, xp.0
     );
 }
 
@@ -65,30 +72,31 @@ const ENEMY_SPEED: f32 = 45.0;
 
 pub fn hunt_player(
     mut commands: Commands,
-    player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
+    mut player_query: Query<(&Transform, &mut Health), (With<Player>, Without<Enemy>)>,
     mut enemy_query: Query<
         (&mut Transform, Entity, Option<&Children>),
         (With<Enemy>, Without<Player>),
     >,
     mut enemy_spawner: ResMut<EnemySpawner>,
-    mut player_data: ResMut<PlayerData>,
     scythe_query: Query<&Scythe>,
     time: Res<Time>,
 ) {
-    let player_transform = player_query.single();
+    let Ok((player_transform, mut health)) = player_query.get_single_mut() else {
+        return;
+    };
 
     'enemies: for (mut enemy_transform, enemy, children) in enemy_query.iter_mut() {
         let distance_to_player = enemy_transform
             .translation
             .distance(player_transform.translation);
 
-        if distance_to_player < 30.0 && player_data.health != 0 {
+        if distance_to_player < 30.0 && health.0 != 0 {
             // Close enough to act
             commands.entity(enemy).despawn_recursive();
             enemy_spawner.num_enemies -= 1;
 
             // Take Damage
-            player_data.health -= 1;
+            health.0 -= 1;
         } else if distance_to_player > 120.0 {
             // Move Towards Player
             let diff_vec = player_transform.translation - enemy_transform.translation;
@@ -176,7 +184,7 @@ pub fn move_scythe(
 pub fn handle_player_health(
     to_despawn: Query<Entity, Or<(With<Scythe>, With<Enemy>, With<Treat>)>>,
     mut player_query: Query<
-        &mut Transform,
+        (&mut Transform, &mut Xp, &mut Health),
         (
             With<Player>,
             Without<Scythe>,
@@ -185,15 +193,17 @@ pub fn handle_player_health(
         ),
     >,
     mut commands: Commands,
-    mut player_data: ResMut<PlayerData>,
+    mut score: ResMut<Score>,
     mut treat_spawner: ResMut<TreatSpawner>,
     mut enemy_spawner: ResMut<EnemySpawner>,
 ) {
-    let mut player_transform = player_query.single_mut();
+    let Ok((mut player_transform, mut xp, mut health)) = player_query.get_single_mut() else {
+        return;
+    };
 
     // Restart Game if player dies
     // TODO : Whole lot to do for game reset
-    if player_data.health <= 0 {
+    if health.0 <= 0 {
         // Despawn all entities that aren't player
         for entity in &to_despawn {
             console_log!("Despawning {:?}", entity);
@@ -201,8 +211,9 @@ pub fn handle_player_health(
         }
 
         // Reset Data
-        player_data.health = 3;
-        player_data.score = 0;
+        xp.0 = 0;
+        health.0 = 3;
+        score.0 = 0;
 
         treat_spawner.num_treats = 0;
         treat_spawner.counter = 0.0;
@@ -274,11 +285,16 @@ pub fn handle_ally_scythes(
     >,
     enemy_query: Query<(&GlobalTransform, Entity), With<Enemy>>,
     enemy_scythe_query: Query<&Children, With<Enemy>>,
+    mut player_query: Query<&mut Xp, With<Player>>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut treat_spawner: ResMut<TreatSpawner>,
-    mut player_data: ResMut<PlayerData>,
+    mut score: ResMut<Score>,
     mut rng: ResMut<GlobalEntropy<WyRand>>,
 ) {
+    let Ok(mut xp) = player_query.get_single_mut() else {
+        return;
+    };
+
     for (enemy_transform, enemy) in enemy_query.iter() {
         // Check if something has already hit this enemy
         let mut collided = false;
@@ -298,7 +314,8 @@ pub fn handle_ally_scythes(
                 enemy_spawner.num_enemies -= 1;
 
                 // Increment Score
-                player_data.score += 1;
+                score.0 += 1;
+                xp.0 += 1;
 
                 // Handle scythe, reduce str
                 scythe.0 -= 1;
@@ -350,10 +367,11 @@ pub fn handle_enemy_scythes(
         (&GlobalTransform, Entity),
         (With<Scythe>, With<TargetsPlayer>, Without<FlyingAway>),
     >,
-    player_query: Query<&GlobalTransform, (With<Player>, Without<Scythe>)>,
-    mut player_data: ResMut<PlayerData>,
+    mut player_query: Query<(&GlobalTransform, &mut Health), (With<Player>, Without<Scythe>)>,
 ) {
-    let player_transform = player_query.single();
+    let Ok((player_transform, mut health)) = player_query.get_single_mut() else {
+        return;
+    };
 
     for (scythe_transform, scythe_entity) in enemy_scythe_query.iter() {
         if scythe_transform
@@ -364,7 +382,7 @@ pub fn handle_enemy_scythes(
             console_log!("Player taking damage");
 
             // Decrement Player Health
-            player_data.health -= 1;
+            health.0 -= 1;
 
             // Handle Scythe
             commands.entity(scythe_entity).despawn();

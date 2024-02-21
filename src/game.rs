@@ -4,6 +4,7 @@ use bevy_rand::{plugin::EntropyPlugin, prelude::WyRand};
 use crate::*;
 
 use self::components::prelude::*;
+use self::components::Xp;
 use self::systems::*;
 use self::ui::*;
 
@@ -23,10 +24,7 @@ impl Plugin for GamePlugin {
             counter: 200.0,
             num_treats: 0,
         })
-        .insert_resource(PlayerData {
-            score: 0,
-            health: 3,
-        })
+        .insert_resource(Score(0))
         .insert_resource(LevelOptions {
             treat_pick_up_radius: 0,
             scythe_speed: DEF_VEL,
@@ -85,11 +83,18 @@ pub enum GameState {
     LevelUp,
 }
 
-fn level_up(mut player_data: ResMut<PlayerData>, mut game_state: ResMut<NextState<GameState>>) {
-    // When Enough xp, level up!
-    if player_data.is_changed() && player_data.score >= 1 {
-        player_data.score = 0;
+fn level_up(mut xp_query: Query<&mut Xp>, mut game_state: ResMut<NextState<GameState>>) {
+    let option_xp = xp_query.get_single_mut();
 
-        game_state.set(GameState::LevelUp);
+    // When Enough xp, level up!
+    match option_xp {
+        Ok(mut xp) => {
+            if xp.0 >= 3 {
+                xp.0 = 0;
+
+                game_state.set(GameState::LevelUp);
+            }
+        }
+        _ => (),
     }
 }

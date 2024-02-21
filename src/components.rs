@@ -21,6 +21,12 @@ pub mod prelude {
 pub struct Collider;
 
 #[derive(Component)]
+pub struct Health(pub usize);
+
+#[derive(Component)]
+pub struct Xp(pub usize);
+
+#[derive(Component)]
 pub struct PlayerDisplay;
 
 #[derive(Component)]
