@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::Collider;
+use super::{prelude::ScytheSpeed, Collider};
 
 #[derive(Component, Clone, Copy)]
 pub struct Scythe(pub u8);
@@ -10,6 +10,7 @@ pub struct ScytheBundle {
     collider: Collider,
     sprite_bundle: SpriteBundle,
     scythe: Scythe,
+    scythe_speed: ScytheSpeed,
 }
 
 impl ScytheBundle {
@@ -29,6 +30,27 @@ impl ScytheBundle {
             },
             collider: Collider,
             scythe: Scythe(2),
+            scythe_speed: ScytheSpeed::default(),
+        }
+    }
+
+    pub fn new_with_speed(speed: f32) -> Self {
+        Self {
+            sprite_bundle: SpriteBundle {
+                transform: Transform {
+                    translation: Vec3::ONE * 3.0,
+                    scale: Vec2::new(0.5, 0.5).extend(0.0),
+                    ..Default::default()
+                },
+                sprite: Sprite {
+                    color: Color::ALICE_BLUE,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            collider: Collider,
+            scythe: Scythe(2),
+            scythe_speed: ScytheSpeed(speed),
         }
     }
 
@@ -48,6 +70,7 @@ impl ScytheBundle {
             },
             collider: Collider,
             scythe: Scythe(str),
+            scythe_speed: ScytheSpeed::default(),
         }
     }
 }

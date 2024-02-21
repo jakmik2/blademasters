@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 use bevy::prelude::*;
 use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
@@ -118,6 +116,7 @@ pub fn add_scythe(
     query: Query<(&Transform, Entity), (With<Player>, Without<Treat>)>,
     mut treat_query: Query<(&mut Transform, Entity), (With<Treat>, Without<Player>)>,
     mut commands: Commands,
+    level_options: Res<LevelOptions>,
     time: Res<Time>,
 ) {
     let (player_transform, player_entity) = query.single();
@@ -134,7 +133,10 @@ pub fn add_scythe(
 
             // Insert as child
             commands.entity(player_entity).with_children(|parent| {
-                parent.spawn((ScytheBundle::new(), TargetsEnemies));
+                parent.spawn((
+                    ScytheBundle::new_with_speed(level_options.scythe_speed),
+                    TargetsEnemies,
+                ));
             });
         } else if dist_to_player < 50.0 {
             // Move towards player
@@ -150,15 +152,16 @@ pub fn add_scythe(
     }
 }
 
-const ROT_VEL: f32 = 3.0 * PI / 2.0;
-
 pub fn move_scythe(
-    mut query: Query<&mut Transform, (With<Scythe>, Without<Player>, Without<FlyingAway>)>,
+    mut query: Query<
+        (&mut Transform, &ScytheSpeed),
+        (With<Scythe>, Without<Player>, Without<FlyingAway>),
+    >,
     time: Res<Time>,
 ) {
-    for mut scythe_transform in query.iter_mut() {
+    for (mut scythe_transform, scythe_speed) in query.iter_mut() {
         // Rotate scythe around parent position ROT_VEL * time passed
-        let rot_position = Vec2::from_angle(ROT_VEL * time.delta_seconds())
+        let rot_position = Vec2::from_angle(scythe_speed.0 * time.delta_seconds())
             .rotate(scythe_transform.translation.truncate());
 
         let new_pos = rot_position.extend(0.0);
@@ -166,7 +169,7 @@ pub fn move_scythe(
         // Rotate Around Parent
         scythe_transform.translation = new_pos;
         // Rotate actual scythe
-        scythe_transform.rotate(Quat::from_rotation_z(ROT_VEL * time.delta_seconds()));
+        scythe_transform.rotate(Quat::from_rotation_z(scythe_speed.0 * time.delta_seconds()));
     }
 }
 
@@ -480,5 +483,17 @@ pub fn treat_spawn(
             pos.extend(0.0),
             (rng.next_u32() % 4) as u8,
         ));
+    }
+}
+
+pub fn apply_levelup(
+    level_options: ResMut<LevelOptions>,
+    mut scythe_speeds: Query<&mut ScytheSpeed, With<TargetsEnemies>>,
+) {
+    // Check upgrade
+    if level_options.is_changed() {
+        for mut scythe_speed in scythe_speeds.iter_mut() {
+            scythe_speed.0 = level_options.scythe_speed;
+        }
     }
 }

@@ -18,3 +18,10 @@ pub struct TreatSpawner {
     pub num_treats: usize,
     pub counter: f32,
 }
+
+#[derive(Resource)]
+pub struct LevelOptions {
+    pub treat_pick_up_radius: u8,
+    pub scythe_speed: f32,
+    pub spawn_treat: u8,
+}

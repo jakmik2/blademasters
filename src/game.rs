@@ -27,6 +27,11 @@ impl Plugin for GamePlugin {
             score: 0,
             health: 3,
         })
+        .insert_resource(LevelOptions {
+            treat_pick_up_radius: 0,
+            scythe_speed: DEF_VEL,
+            spawn_treat: 0,
+        })
         .init_state::<GameState>()
         .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins(ScoreboardPlugin)
@@ -43,14 +48,21 @@ impl Plugin for GamePlugin {
             (move_scythe, move_player, hunt_player).run_if(in_state(GameState::Game)),
         )
         // Update As Frequently as possible
-        .add_systems(Update, (change_menu, button_system))
+        .add_systems(
+            Update,
+            (
+                (button_system, levelup_action).run_if(in_state(GameState::LevelUp)),
+                level_up.run_if(in_state(GameState::Game)),
+            ),
+        )
         // Late adds to ensure preframe resolution
         .add_systems(
             PostUpdate,
             handle_scythe_collision.run_if(in_state(GameState::Game)),
         )
-        .add_systems(OnEnter(GameState::Pause), (setup_pause_menu)) // Build Pause Menu
-        .add_systems(OnExit(GameState::Pause), despawn_screen::<LevelMenu>) // Clean up Pause Menu
+        .add_systems(OnEnter(GameState::LevelUp), (setup_pause_menu)) // Build Pause Menu
+        .add_systems(OnExit(GameState::LevelUp), despawn_screen::<LevelMenu>) // Clean up Pause Menu
+        .add_systems(OnEnter(GameState::Game), apply_levelup)
         .add_systems(
             Last,
             (
@@ -70,18 +82,14 @@ pub enum GameState {
     #[default]
     Game,
     Pause,
+    LevelUp,
 }
 
-fn change_menu(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    cur_state: Res<State<GameState>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
-    if keyboard_input.just_pressed(KeyCode::KeyQ) {
-        console_log!("Current game state: {:?}", cur_state.get());
-        match cur_state.get() {
-            GameState::Game => game_state.set(GameState::Pause),
-            GameState::Pause => game_state.set(GameState::Game),
-        }
+fn level_up(mut player_data: ResMut<PlayerData>, mut game_state: ResMut<NextState<GameState>>) {
+    // When Enough xp, level up!
+    if player_data.is_changed() && player_data.score >= 1 {
+        player_data.score = 0;
+
+        game_state.set(GameState::LevelUp);
     }
 }
