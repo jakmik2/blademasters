@@ -124,7 +124,7 @@ pub fn add_scythe(
     query: Query<(&Transform, Entity), (With<Player>, Without<Treat>)>,
     mut treat_query: Query<(&mut Transform, Entity), (With<Treat>, Without<Player>)>,
     mut commands: Commands,
-    level_options: Res<LevelOptions>,
+    skill_tracker: Res<SkillTracker>,
     time: Res<Time>,
 ) {
     let (player_transform, player_entity) = query.single();
@@ -142,7 +142,7 @@ pub fn add_scythe(
             // Insert as child
             commands.entity(player_entity).with_children(|parent| {
                 parent.spawn((
-                    ScytheBundle::new_with_speed(level_options.scythe_speed),
+                    ScytheBundle::new_with_speed(skill_tracker.get(LevelOptions::ScytheSpeed)),
                     TargetsEnemies,
                 ));
             });
@@ -505,13 +505,13 @@ pub fn treat_spawn(
 }
 
 pub fn apply_levelup(
-    level_options: ResMut<LevelOptions>,
+    skill_tracker: ResMut<SkillTracker>,
     mut scythe_speeds: Query<&mut ScytheSpeed, With<TargetsEnemies>>,
 ) {
     // Check upgrade
-    if level_options.is_changed() {
+    if skill_tracker.is_changed() {
         for mut scythe_speed in scythe_speeds.iter_mut() {
-            scythe_speed.0 = level_options.scythe_speed;
+            scythe_speed.0 = skill_tracker.get(LevelOptions::ScytheSpeed);
         }
     }
 }

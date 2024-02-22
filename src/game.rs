@@ -25,11 +25,7 @@ impl Plugin for GamePlugin {
             num_treats: 0,
         })
         .insert_resource(Score(0))
-        .insert_resource(LevelOptions {
-            treat_pick_up_radius: 0,
-            scythe_speed: DEF_VEL,
-            spawn_treat: 0,
-        })
+        .insert_resource(SkillTracker::default())
         .init_state::<GameState>()
         .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins(ScoreboardPlugin)

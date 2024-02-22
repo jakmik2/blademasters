@@ -1,18 +1,15 @@
 use bevy::prelude::*;
 use bevy_rand::{prelude::WyRand, resource::GlobalEntropy};
+use rand_core::RngCore;
 
-use crate::{console_log, utils::*, GameState, LevelOptions};
+use crate::{components::prelude::LevelOptions, console_log, utils::*, GameState, SkillTracker};
 
 use super::NORMAL_BUTTON;
 
 #[derive(Component)]
 pub struct LevelMenu;
 
-pub fn setup_pause_menu(
-    mut commands: Commands,
-    level_options: Res<LevelOptions>,
-    _rng: ResMut<GlobalEntropy<WyRand>>,
-) {
+pub fn setup_pause_menu(mut commands: Commands, mut rng: ResMut<GlobalEntropy<WyRand>>) {
     // Common style for all buttons on the screen
     let button_style = Style {
         width: Val::Px(250.0),
@@ -35,6 +32,20 @@ pub fn setup_pause_menu(
         color: Color::OLIVE,
         ..default()
     };
+
+    let option_1 = LevelOptions::get_random(rng.next_u32());
+
+    let mut option_2 = LevelOptions::get_random(rng.next_u32());
+
+    while option_1 == option_2 {
+        option_2 = LevelOptions::get_random(rng.next_u32());
+    }
+
+    let mut option_3 = LevelOptions::get_random(rng.next_u32());
+
+    while option_1 == option_3 || (option_2 == option_3) {
+        option_3 = LevelOptions::get_random(rng.next_u32())
+    }
 
     commands
         .spawn((
@@ -59,11 +70,11 @@ pub fn setup_pause_menu(
                         background_color: NORMAL_BUTTON.into(),
                         ..Default::default()
                     },
-                    LevelButtonAction::First,
+                    option_1,
                 ))
                 .with_children(|parent| {
                     parent.spawn((TextBundle::from_section(
-                        "Button 1",
+                        option_1.to_string(),
                         button_text_style.clone(),
                     ),));
                 });
@@ -75,11 +86,11 @@ pub fn setup_pause_menu(
                         background_color: NORMAL_BUTTON.into(),
                         ..Default::default()
                     },
-                    LevelButtonAction::Second,
+                    option_2,
                 ))
                 .with_children(|parent| {
                     parent.spawn((TextBundle::from_section(
-                        "Faster Swords",
+                        option_2.to_string(),
                         button_text_style.clone(),
                     ),));
                 });
@@ -91,39 +102,35 @@ pub fn setup_pause_menu(
                         background_color: NORMAL_BUTTON.into(),
                         ..Default::default()
                     },
-                    LevelButtonAction::Third,
+                    option_3,
                 ))
                 .with_children(|parent| {
                     parent.spawn((TextBundle::from_section(
-                        "Button 3",
+                        option_3.to_string(),
                         button_text_style.clone(),
                     ),));
                 });
         });
 }
 
-#[derive(Component)]
-pub enum LevelButtonAction {
-    First,
-    Second,
-    Third,
-}
-
 pub fn levelup_action(
-    interaction_query: Query<
-        (&Interaction, &LevelButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
-    mut level_options: ResMut<LevelOptions>,
+    interaction_query: Query<(&Interaction, &LevelOptions), (Changed<Interaction>, With<Button>)>,
+    mut skill_tracker: ResMut<SkillTracker>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
     // Hard coding for the time being
-    for (interaction, level_up_action) in &interaction_query {
+    for (interaction, level_option) in &interaction_query {
         if *interaction == Interaction::Pressed {
-            match level_up_action {
-                LevelButtonAction::First => level_options.treat_pick_up_radius += 1,
-                LevelButtonAction::Second => level_options.scythe_speed *= 1.5,
-                LevelButtonAction::Third => level_options.spawn_treat += 1,
+            match level_option {
+                LevelOptions::TreatRadius => {
+                    skill_tracker.increment(LevelOptions::TreatRadius, 1.0)
+                }
+                LevelOptions::ScytheSpeed => {
+                    skill_tracker.increment(LevelOptions::ScytheSpeed, 5.0)
+                }
+                LevelOptions::TreatChance => {
+                    skill_tracker.increment(LevelOptions::TreatChance, 1.0)
+                }
             }
 
             game_state.set(GameState::Game);
