@@ -6,7 +6,11 @@ use crate::components::{prelude::*, *};
 use crate::utils::logging::*;
 use crate::{console_log, resources::*, GameState, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
+pub fn setup(
+    mut commands: Commands, 
+    mut game_state: ResMut<NextState<GameState>>,
+    asset_server: Res<AssetServer>,
+) {
     game_state.set(GameState::Game);
     // Camera
     commands.spawn(Camera2dBundle::default());
@@ -16,7 +20,7 @@ pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>
 
     // Add player
     // TODO : Change to scene based start
-    commands.spawn(PlayerBundle::new());
+    commands.spawn(PlayerBundle::new(asset_server.load("cats/cat06.png")));
 }
 
 pub fn update_ui(
@@ -126,6 +130,7 @@ pub fn add_scythe(
     mut commands: Commands,
     skill_tracker: Res<SkillTracker>,
     time: Res<Time>,
+    asset_server: Res<AssetServer>,
 ) {
     let (player_transform, player_entity) = query.single();
 
@@ -142,7 +147,10 @@ pub fn add_scythe(
             // Insert as child
             commands.entity(player_entity).with_children(|parent| {
                 parent.spawn((
-                    ScytheBundle::new_with_speed(skill_tracker.get(LevelOptions::ScytheSpeed)),
+                    ScytheBundle::new_with_speed(
+                        skill_tracker.get(LevelOptions::ScytheSpeed),
+                        asset_server.load("blades/blade00.png"),
+                    ),
                     TargetsEnemies,
                 ));
             });
@@ -234,6 +242,7 @@ pub fn enemy_spawner(
     time: Res<Time>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut rng: ResMut<GlobalEntropy<WyRand>>,
+    asset_server: Res<AssetServer>,
 ) {
     // Update Timer
     enemy_spawner.counter += time.delta_seconds();
@@ -259,7 +268,9 @@ pub fn enemy_spawner(
         };
 
         // Spawn an enemy in a random place!
-        commands.spawn(EnemyBundle::new_at(pos));
+        commands.spawn(EnemyBundle::new_at(
+                                pos, 
+                                asset_server.load("cats/cat11.png")));
     }
 }
 

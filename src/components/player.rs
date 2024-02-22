@@ -23,7 +23,7 @@ pub struct PlayerBundle {
 }
 
 impl PlayerBundle {
-    pub fn new() -> Self {
+    pub fn new(texture: Handle<Image>) -> Self {
         console_log!("Adding Player!");
         Self {
             sprite_bundle: SpriteBundle {
@@ -32,10 +32,7 @@ impl PlayerBundle {
                     scale: Vec2::new(30.0, 30.0).extend(0.0),
                     ..Default::default()
                 },
-                sprite: Sprite {
-                    color: Color::RED,
-                    ..Default::default()
-                },
+                texture,
                 ..Default::default()
             },
             collider: Collider,

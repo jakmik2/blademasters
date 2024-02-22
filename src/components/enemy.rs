@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::texture};
 use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
 
@@ -16,6 +16,7 @@ impl Enemy {
         mut commands: Commands,
         enemy_query: Query<Entity, Added<Enemy>>,
         mut rng: ResMut<GlobalEntropy<WyRand>>,
+        asset_server: Res<AssetServer>,
     ) {
         let Ok(enemy) = enemy_query.get_single() else {
             return;
@@ -31,9 +32,24 @@ impl Enemy {
         let rot_two = Vec2::from_angle(4.0 * PI / 3.0).rotate(r_off);
 
         commands.entity(enemy).with_children(|parent| {
-            parent.spawn((ScytheBundle::new_at(r_off, 2), TargetsPlayer));
-            parent.spawn((ScytheBundle::new_at(rot_one, 2), TargetsPlayer));
-            parent.spawn((ScytheBundle::new_at(rot_two, 2), TargetsPlayer));
+            parent.spawn((ScytheBundle::new_at(
+                            r_off,
+                            2,
+                            0,
+                            asset_server.load("blades/blade00.png")), TargetsPlayer)
+                        );
+            parent.spawn((ScytheBundle::new_at(
+                            rot_one,
+                            2,
+                            1,
+                            asset_server.load("blades/blade00.png")), TargetsPlayer)
+                        );
+            parent.spawn((ScytheBundle::new_at(
+                            rot_two,
+                            2,
+                            2,
+                            asset_server.load("blades/blade00.png")), TargetsPlayer)
+                        );
         });
     }
 }
@@ -46,18 +62,15 @@ pub struct EnemyBundle {
 }
 
 impl EnemyBundle {
-    pub fn new() -> Self {
+    pub fn new(texture: Handle<Image>) -> Self {
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: Vec3::ZERO,
-                    scale: Vec2::new(1.0, 1.0).extend(0.0),
+                    scale: Vec2::new(0.25, 0.25).extend(0.0),
                     ..Default::default()
                 },
-                sprite: Sprite {
-                    color: Color::BISQUE,
-                    ..Default::default()
-                },
+                texture,
                 ..Default::default()
             },
             collider: Collider,
@@ -65,19 +78,16 @@ impl EnemyBundle {
         }
     }
 
-    pub fn new_at(position: Vec2) -> Self {
+    pub fn new_at(position: Vec2, texture: Handle<Image>) -> Self {
         console_log!("Spawning Enemy!");
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: position.extend(0.0),
-                    scale: Vec2::new(30.0, 30.0).extend(0.0),
+                    scale: Vec2::new(30., 30.).extend(0.0),
                     ..Default::default()
                 },
-                sprite: Sprite {
-                    color: Color::BISQUE,
-                    ..Default::default()
-                },
+                texture,
                 ..Default::default()
             },
             collider: Collider,
