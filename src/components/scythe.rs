@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{gizmos::aabb, prelude::*};
 use bevy_rand::{prelude::WyRand, resource::GlobalEntropy};
 use rand_core::RngCore;
 
@@ -17,12 +17,12 @@ pub struct Scythe(pub u8);
 impl Scythe {
     pub fn spawn(
         mut commands: Commands,
-        query: Query<Entity, Added<Scythe>>,
+        query: Query<(&Transform, Entity), Added<Scythe>>,
         mut rng: ResMut<GlobalEntropy<WyRand>>,
         asset_server: Res<AssetServer>,
         mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     ) {
-        for scythe in query.iter() {
+        for (transform, scythe) in query.iter() {
             let texture: Handle<Image> = asset_server.load("textures/blade-preview.png");
 
             let texture_atlas = TextureAtlasLayout::from_grid(
@@ -48,10 +48,12 @@ impl Scythe {
                         custom_size: Some(DEFAULT_CUSTOM_SIZE),
                         ..Default::default()
                     },
-                    // transform: Transform {
-                    //     rotation: Quat::from_rotation_z(3.0 * PI / 2.0),
-                    //     ..Default::default()
-                    // },
+                    transform: Transform {
+                        rotation: Quat::from_rotation_z(
+                            (Vec2::ONE).angle_between(transform.translation.truncate()) - PI / 2.0,
+                        ),
+                        ..Default::default()
+                    },
                     ..Default::default()
                 });
             });

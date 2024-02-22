@@ -242,7 +242,6 @@ pub fn enemy_spawner(
     mut commands: Commands,
     time: Res<Time>,
     mut enemy_spawner: ResMut<EnemySpawner>,
-    asset_server: Res<AssetServer>,
     mut rng: ResMut<GlobalEntropy<WyRand>>,
 ) {
     // Update Timer
