@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
@@ -6,8 +8,13 @@ use crate::components::{prelude::*, *};
 use crate::utils::logging::*;
 use crate::{console_log, resources::*, GameState, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
+pub fn setup(
+    mut commands: Commands,
+    mut game_state: ResMut<NextState<GameState>>,
+    asset_server: Res<AssetServer>,
+) {
     game_state.set(GameState::Game);
+
     // Camera
     commands.spawn(Camera2dBundle::default());
 
@@ -16,7 +23,7 @@ pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>
 
     // Add player
     // TODO : Change to scene based start
-    commands.spawn(PlayerBundle::new());
+    commands.spawn(PlayerBundle::new(asset_server));
 }
 
 pub fn update_ui(
@@ -127,7 +134,9 @@ pub fn add_scythe(
     skill_tracker: Res<SkillTracker>,
     time: Res<Time>,
 ) {
-    let (player_transform, player_entity) = query.single();
+    let Ok((player_transform, player_entity)) = query.get_single() else {
+        return;
+    };
 
     // TODO : This is horribly optimized
     for (mut treat_transform, treat) in treat_query.iter_mut() {
@@ -212,7 +221,7 @@ pub fn handle_player_health(
 
         // Reset Data
         xp.0 = 0;
-        health.0 = 3;
+        health.0 = 10;
         score.0 = 0;
 
         treat_spawner.num_treats = 0;
@@ -233,6 +242,7 @@ pub fn enemy_spawner(
     mut commands: Commands,
     time: Res<Time>,
     mut enemy_spawner: ResMut<EnemySpawner>,
+    asset_server: Res<AssetServer>,
     mut rng: ResMut<GlobalEntropy<WyRand>>,
 ) {
     // Update Timer
@@ -259,7 +269,11 @@ pub fn enemy_spawner(
         };
 
         // Spawn an enemy in a random place!
-        commands.spawn(EnemyBundle::new_at(pos));
+        commands.spawn(EnemyBundle::new_at(
+            pos,
+            asset_server,
+            rng.next_u32() % 8 + 1,
+        ));
     }
 }
 
@@ -385,7 +399,7 @@ pub fn handle_enemy_scythes(
             health.0 -= 1;
 
             // Handle Scythe
-            commands.entity(scythe_entity).despawn();
+            commands.entity(scythe_entity).despawn_recursive();
         }
     }
 }

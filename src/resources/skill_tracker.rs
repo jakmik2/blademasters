@@ -1,7 +1,7 @@
 use bevy::{prelude::*, utils::HashMap};
 
 use crate::components::levelups::{LevelOptions, LevelOptions::*};
-use crate::components::prelude::DEF_VEL;
+use crate::components::prelude::DEFAULT_SCYTHYE_VELOCITY;
 
 #[derive(Resource)]
 pub struct SkillTracker {
@@ -25,7 +25,7 @@ impl Default for SkillTracker {
         // Create base skills
         let mut skills: HashMap<LevelOptions, f32> = HashMap::new();
 
-        skills.insert(ScytheSpeed, DEF_VEL);
+        skills.insert(ScytheSpeed, DEFAULT_SCYTHYE_VELOCITY);
         skills.insert(TreatRadius, 50.0);
         skills.insert(TreatChance, 0.0);
 

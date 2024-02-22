@@ -65,17 +65,19 @@ impl EnemyBundle {
         }
     }
 
-    pub fn new_at(position: Vec2) -> Self {
+    pub fn new_at(position: Vec2, asset_server: Res<AssetServer>, n: u32) -> Self {
+        let texture: Handle<Image> = asset_server.load(format!("textures/cats/cat0{:?}.png", n));
+
         console_log!("Spawning Enemy!");
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: position.extend(0.0),
-                    scale: Vec2::new(30.0, 30.0).extend(0.0),
                     ..Default::default()
                 },
+                texture,
                 sprite: Sprite {
-                    color: Color::BISQUE,
+                    custom_size: Some(Vec2::new(53., 60.)),
                     ..Default::default()
                 },
                 ..Default::default()

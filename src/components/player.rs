@@ -23,21 +23,26 @@ pub struct PlayerBundle {
 }
 
 impl PlayerBundle {
-    pub fn new() -> Self {
+    pub fn new(asset_server: Res<AssetServer>) -> Self {
         console_log!("Adding Player!");
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: Vec2::ZERO.extend(0.0),
-                    scale: Vec2::new(30.0, 30.0).extend(0.0),
                     ..Default::default()
                 },
+                texture: asset_server.load("textures/cats/cat01.png"),
                 sprite: Sprite {
-                    color: Color::RED,
+                    custom_size: Some(Vec2::new(53., 60.)),
                     ..Default::default()
                 },
                 ..Default::default()
             },
+            // transform: Transform {
+            //     translation: Vec2::ZERO.extend(0.0),
+            //     scale: Vec2::new(30.0, 30.0).extend(0.0),
+            //     ..Default::default()
+            // },
             collider: Collider,
             player: Player,
             speed: Speed(150.0),

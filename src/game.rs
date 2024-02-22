@@ -33,7 +33,14 @@ impl Plugin for GamePlugin {
         // Make sure everything is spawned before any frame
         .add_systems(
             First,
-            (treat_spawn, Enemy::spawn, enemy_spawner, add_scythe)
+            (
+                treat_spawn,
+                Enemy::spawn,
+                // Player::spawn,
+                Scythe::spawn,
+                enemy_spawner,
+                add_scythe,
+            )
                 .run_if(in_state(GameState::Game)),
         )
         // Movement needs to be handled at a fixed step
