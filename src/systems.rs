@@ -269,11 +269,7 @@ pub fn enemy_spawner(
         };
 
         // Spawn an enemy in a random place!
-        commands.spawn(EnemyBundle::new_at(
-            pos,
-            asset_server,
-            rng.next_u32() % 8 + 1,
-        ));
+        commands.spawn(EnemyBundle::new_at(pos));
     }
 }
 

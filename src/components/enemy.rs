@@ -8,6 +8,8 @@ use crate::{console_log, utils::*};
 
 use super::{prelude::ScytheBundle, Collider, TargetsPlayer};
 
+const DEFAULT_SPRITE_SIZE: Vec2 = Vec2::new(53., 60.);
+
 #[derive(Component)]
 pub struct Enemy;
 
@@ -16,10 +18,15 @@ impl Enemy {
         mut commands: Commands,
         enemy_query: Query<Entity, Added<Enemy>>,
         mut rng: ResMut<GlobalEntropy<WyRand>>,
+        asset_server: Res<AssetServer>,
     ) {
         let Ok(enemy) = enemy_query.get_single() else {
             return;
         };
+
+        let n = (rng.next_u32() % 8) + 2;
+
+        let texture: Handle<Image> = asset_server.load(format!("textures/cats/cat0{:?}.png", n));
 
         // Configure the enemy when entity is added to the scene
         console_log!("Adding scythes;");
@@ -31,6 +38,14 @@ impl Enemy {
         let rot_two = Vec2::from_angle(4.0 * PI / 3.0).rotate(r_off);
 
         commands.entity(enemy).with_children(|parent| {
+            parent.spawn(SpriteBundle {
+                texture,
+                sprite: Sprite {
+                    custom_size: Some(DEFAULT_SPRITE_SIZE),
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
             parent.spawn((ScytheBundle::new_at(r_off, 2), TargetsPlayer));
             parent.spawn((ScytheBundle::new_at(rot_one, 2), TargetsPlayer));
             parent.spawn((ScytheBundle::new_at(rot_two, 2), TargetsPlayer));
@@ -41,47 +56,25 @@ impl Enemy {
 #[derive(Bundle)]
 pub struct EnemyBundle {
     collider: Collider,
-    sprite_bundle: SpriteBundle,
+    transform: TransformBundle,
     enemy: Enemy,
 }
 
 impl EnemyBundle {
     pub fn new() -> Self {
         Self {
-            sprite_bundle: SpriteBundle {
-                transform: Transform {
-                    translation: Vec3::ZERO,
-                    scale: Vec2::new(1.0, 1.0).extend(0.0),
-                    ..Default::default()
-                },
-                sprite: Sprite {
-                    color: Color::BISQUE,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            transform: TransformBundle::from_transform(Transform::default()),
             collider: Collider,
             enemy: Enemy,
         }
     }
 
-    pub fn new_at(position: Vec2, asset_server: Res<AssetServer>, n: u32) -> Self {
-        let texture: Handle<Image> = asset_server.load(format!("textures/cats/cat0{:?}.png", n));
-
+    pub fn new_at(position: Vec2) -> Self {
         console_log!("Spawning Enemy!");
         Self {
-            sprite_bundle: SpriteBundle {
-                transform: Transform {
-                    translation: position.extend(0.0),
-                    ..Default::default()
-                },
-                texture,
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(53., 60.)),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            transform: TransformBundle::from_transform(Transform::from_xyz(
+                position.x, position.y, 0.0,
+            )),
             collider: Collider,
             enemy: Enemy,
         }

@@ -48,10 +48,10 @@ impl Scythe {
                         custom_size: Some(DEFAULT_CUSTOM_SIZE),
                         ..Default::default()
                     },
-                    transform: Transform {
-                        rotation: Quat::from_rotation_z(3.0 * PI / 2.0),
-                        ..Default::default()
-                    },
+                    // transform: Transform {
+                    //     rotation: Quat::from_rotation_z(3.0 * PI / 2.0),
+                    //     ..Default::default()
+                    // },
                     ..Default::default()
                 });
             });
@@ -62,7 +62,6 @@ impl Scythe {
 #[derive(Bundle)]
 pub struct ScytheBundle {
     collider: Collider,
-    // sprite_sheet_bundle: SpriteSheetBundle,
     transform: TransformBundle,
     scythe: Scythe,
     scythe_speed: ScytheSpeed,
@@ -71,22 +70,12 @@ pub struct ScytheBundle {
 const DEFAULT_CUSTOM_SIZE: Vec2 = Vec2::new(32., 32.);
 
 impl ScytheBundle {
-    pub fn new(rel_pos: Vec2, str: u8, speed: f32) -> Self {
+    pub fn new(rel_pos: Vec2, dist: f32, str: u8, speed: f32) -> Self {
         Self {
-            // sprite_sheet_bundle: SpriteSheetBundle {
             transform: TransformBundle::from_transform(Transform {
-                translation: rel_pos.extend(0.0).normalize() * 100.0,
+                translation: rel_pos.extend(0.0).normalize() * dist,
                 ..Default::default()
             }),
-            //     sprite: Sprite {
-            //         custom_size: Some(DEFAULT_CUSTOM_SIZE),
-            //         // color: Color::ALICE_BLUE,
-            //         ..Default::default()
-            //     },
-            //     texture,
-            //     atlas: TextureAtlas { layout, index: () },
-            //     ..Default::default()
-            // },
             collider: Collider,
             scythe: Scythe(str),
             scythe_speed: ScytheSpeed(speed),
@@ -94,10 +83,10 @@ impl ScytheBundle {
     }
 
     pub fn new_with_speed(speed: f32) -> Self {
-        Self::new(Vec2::ONE, 2, speed)
+        Self::new(Vec2::ONE, 100.0, 2, speed)
     }
 
     pub fn new_at(rel_pos: Vec2, str: u8) -> Self {
-        Self::new(rel_pos, str, DEFAULT_SCYTHYE_VELOCITY)
+        Self::new(rel_pos, 100.0, str, DEFAULT_SCYTHYE_VELOCITY)
     }
 }
