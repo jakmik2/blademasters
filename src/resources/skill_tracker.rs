@@ -26,7 +26,7 @@ impl Default for SkillTracker {
         let mut skills: HashMap<LevelOptions, f32> = HashMap::new();
 
         skills.insert(ScytheSpeed, DEF_VEL);
-        skills.insert(TreatRadius, 0.0);
+        skills.insert(TreatRadius, 50.0);
         skills.insert(TreatChance, 0.0);
 
         Self { skills }

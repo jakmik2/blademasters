@@ -50,7 +50,7 @@ impl Default for ScytheSpeed {
 }
 
 #[derive(Component)]
-pub struct TreatRadius(pub f32);
+pub struct TreatPickupRadius(pub f32);
 
 #[derive(Component)]
-pub struct ChanceSpawnTreat(pub f32);
+pub struct ChanceSpawnTreat(pub u32);

@@ -146,7 +146,7 @@ pub fn add_scythe(
                     TargetsEnemies,
                 ));
             });
-        } else if dist_to_player < 50.0 {
+        } else if dist_to_player < skill_tracker.get(LevelOptions::TreatRadius) {
             // Move towards player
             // Move Towards Player
             let diff_vec = treat_transform.translation - player_transform.translation;
@@ -392,6 +392,7 @@ pub fn handle_enemy_scythes(
 
 pub fn handle_scythe_collision(
     mut commands: Commands,
+    treat_odds_query: Query<&ChanceSpawnTreat>,
     mut ally_scythe_query: Query<
         (&GlobalTransform, &Transform, &mut Scythe, Entity),
         (
@@ -410,6 +411,8 @@ pub fn handle_scythe_collision(
             Without<FlyingAway>,
         ),
     >,
+    mut rng: ResMut<GlobalEntropy<WyRand>>,
+    mut treat_spawner: ResMut<TreatSpawner>,
 ) {
     for (a_scythe_gt, a_scythe_t, mut ally_scythe_str, ally_scythe) in ally_scythe_query.iter_mut()
     {
@@ -430,17 +433,28 @@ pub fn handle_scythe_collision(
                 // See which scythe loses
                 // Evaluate flying away to loser, decrement strength of winner
                 if ally_scythe_str.0 >= enemy_scythe_str.0 {
-                    console_log!("This is the error 2");
                     commands.entity(enemy_scythe).insert(FlyingAway::new(
                         Vec2::new(e_scythe_t.translation.y, -e_scythe_t.translation.x).extend(0.0),
                     ));
                     ally_scythe_str.0 -= 1;
                 } else {
-                    console_log!("This is the error 3");
                     commands.entity(ally_scythe).insert(FlyingAway::new(
                         Vec2::new(a_scythe_t.translation.y, -a_scythe_t.translation.x).extend(0.0),
                     ));
                     enemy_scythe_str.0 -= 1;
+                }
+
+                // Chance of a treat when scythes collide
+                let treat_odds = treat_odds_query.single();
+
+                if rng.next_u32() % 500 < treat_odds.0 {
+                    treat_spawner.num_treats += 1;
+
+                    // Spawn a Treat in a random place!
+                    commands.spawn(TreatBundle::new_at(
+                        e_scythe_gt.translation(),
+                        (rng.next_u32() % 4) as u8,
+                    ));
                 }
             }
         }
@@ -505,13 +519,23 @@ pub fn treat_spawn(
 }
 
 pub fn apply_levelup(
-    skill_tracker: ResMut<SkillTracker>,
+    skill_tracker: Res<SkillTracker>,
     mut scythe_speeds: Query<&mut ScytheSpeed, With<TargetsEnemies>>,
+    mut treat_pickup: Query<&mut TreatPickupRadius, With<Treat>>,
+    mut treat_drop_odds: Query<&mut ChanceSpawnTreat, With<Player>>,
 ) {
     // Check upgrade
     if skill_tracker.is_changed() {
         for mut scythe_speed in scythe_speeds.iter_mut() {
             scythe_speed.0 = skill_tracker.get(LevelOptions::ScytheSpeed);
         }
+
+        for mut treat_radius in treat_pickup.iter_mut() {
+            treat_radius.0 = skill_tracker.get(LevelOptions::TreatRadius);
+        }
+
+        let mut odds = treat_drop_odds.single_mut();
+
+        odds.0 = skill_tracker.get(LevelOptions::TreatChance) as u32;
     }
 }

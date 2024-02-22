@@ -85,9 +85,8 @@ fn level_up(mut xp_query: Query<&mut Xp>, mut game_state: ResMut<NextState<GameS
     // When Enough xp, level up!
     match option_xp {
         Ok(mut xp) => {
-            if xp.0 >= 3 {
+            if xp.0 >= 5 {
                 xp.0 = 0;
-
                 game_state.set(GameState::LevelUp);
             }
         }

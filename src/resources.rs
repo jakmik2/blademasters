@@ -1,6 +1,6 @@
-pub mod level_options;
+pub mod skill_tracker;
 
-pub use level_options::*;
+pub use skill_tracker::*;
 
 use bevy::prelude::*;
 

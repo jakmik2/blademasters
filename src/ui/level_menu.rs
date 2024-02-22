@@ -123,7 +123,7 @@ pub fn levelup_action(
         if *interaction == Interaction::Pressed {
             match level_option {
                 LevelOptions::TreatRadius => {
-                    skill_tracker.increment(LevelOptions::TreatRadius, 1.0)
+                    skill_tracker.increment(LevelOptions::TreatRadius, 15.0)
                 }
                 LevelOptions::ScytheSpeed => {
                     skill_tracker.increment(LevelOptions::ScytheSpeed, 5.0)

@@ -27,9 +27,6 @@ pub struct Health(pub usize);
 pub struct Xp(pub usize);
 
 #[derive(Component)]
-pub struct TreatPickupRadius;
-
-#[derive(Component)]
 pub struct PlayerDisplay;
 
 #[derive(Component)]
