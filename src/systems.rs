@@ -20,7 +20,7 @@ pub fn setup(
 
     // Add player
     // TODO : Change to scene based start
-    commands.spawn(PlayerBundle::new(asset_server.load("tiny_cats/cat06.png")));
+    commands.spawn(PlayerBundle::new(asset_server.load("ducks/duck.png")));
 }
 
 pub fn update_ui(
@@ -149,7 +149,7 @@ pub fn add_scythe(
                 parent.spawn((
                     ScytheBundle::new_with_speed(
                         skill_tracker.get(LevelOptions::ScytheSpeed),
-                        asset_server.load("tiny_blades/blade00.png"),
+                        asset_server.load("blades/blade00.png"),
                     ),
                     TargetsEnemies,
                 ));
@@ -269,8 +269,9 @@ pub fn enemy_spawner(
 
         // Spawn an enemy in a random place!
         commands.spawn(EnemyBundle::new_at(
-                                pos, 
-                                asset_server.load("tiny_cats/cat11.png")));
+                        pos, 
+                        asset_server.load("ducks/goose.png"))
+        );
     }
 }
 

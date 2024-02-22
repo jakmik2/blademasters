@@ -20,9 +20,9 @@ impl ScytheBundle {
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
-                    translation: Vec3::ONE * 3.0,
+                    translation: Vec3::ONE * 75.0,
                     rotation: Quat::from_rotation_z(-PI/2.),
-                    scale: Vec2::new(0.5, 0.5).extend(0.0),
+                    scale: Vec2::new(1., 1.).extend(0.0),
                     ..Default::default()
                 },
                 texture,
@@ -38,10 +38,10 @@ impl ScytheBundle {
         Self {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
-                    translation: Vec3::ONE * 3.0,
+                    translation: Vec3::ONE * 75.0, // TUNE CONSTANT FOR RADIUS TUNING
                     rotation: Quat::from_rotation_z(-PI/2.),
                     // TODO scale issues
-                    scale: Vec2::new(0.5, 0.5).extend(0.0),
+                    scale: Vec2::new(1., 1.).extend(0.0), // TUNE FOR BLADE AREA
                     ..Default::default()
                 },
                 texture,
@@ -58,17 +58,19 @@ impl ScytheBundle {
             
             sprite_bundle: SpriteBundle {
                 transform: Transform {
-                    translation: rel_pos.extend(0.0) * 3.0,
+                    // rel_pos is already normalized when called
+                    translation: rel_pos.extend(0.0) * 75.0,
                     rotation: match place {
                         // rotate the enemy's blade based on number of scythe
-                        // TODO find correct angles and correct PINWHEELING
+                        // TODO Make entire thing generic
+                        // (no more pinwheeling, but lmk if you see anything wonky)
                         0 => Quat::from_rotation_z(7.*PI/4.),
                         1 => Quat::from_rotation_z(PI/2.),
                         2 => Quat::from_rotation_z(PI),
-                        _ => Quat::from_rotation_z(PI/2.),
+                        _ => Quat::from_rotation_z(0.), // SHOULD NOT HAPPEN
                     },
                     // TODO scale issues
-                    scale: Vec2::new(0.5, 0.5).extend(0.0),
+                    scale: Vec2::new(1., 1.).extend(0.0),
                     ..Default::default()
                 },
                 texture,

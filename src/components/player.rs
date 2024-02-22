@@ -29,7 +29,7 @@ impl PlayerBundle {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: Vec2::ZERO.extend(0.0),
-                    scale: Vec2::new(30.0, 30.0).extend(0.0),
+                    scale: Vec2::new(1.5, 1.5).extend(0.0), // TUNE FOR PLAYER BIGNESS
                     ..Default::default()
                 },
                 texture,

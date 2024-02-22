@@ -40,19 +40,19 @@ impl Enemy {
                             r_off,
                             2,
                             0,
-                            asset_server.load("tiny_blades/blade00.png")), TargetsPlayer)
+                            asset_server.load("blades/blade01.png")), TargetsPlayer)
                         );
             parent.spawn((ScytheBundle::new_at(
                             rot_one,
                             2,
                             1,
-                            asset_server.load("tiny_blades/blade02.png")), TargetsPlayer)
+                            asset_server.load("blades/blade02.png")), TargetsPlayer)
                         );
             parent.spawn((ScytheBundle::new_at(
                             rot_two,
                             2,
                             2,
-                            asset_server.load("tiny_blades/blade03.png")), TargetsPlayer)
+                            asset_server.load("blades/blade03.png")), TargetsPlayer)
                         );
         });
     }
@@ -71,7 +71,7 @@ impl EnemyBundle {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: Vec3::ZERO,
-                    scale: Vec2::new(0.25, 0.25).extend(0.0),
+                    scale: Vec2::new(1., 1.).extend(0.0),
                     ..Default::default()
                 },
                 texture,
@@ -88,7 +88,7 @@ impl EnemyBundle {
             sprite_bundle: SpriteBundle {
                 transform: Transform {
                     translation: position.extend(0.0),
-                    scale: Vec2::new(30., 30.).extend(0.0),
+                    scale: Vec2::new(1.5, 1.5).extend(0.0), // TUNE FOR ENEMY BIGNESS
                     ..Default::default()
                 },
                 texture,
