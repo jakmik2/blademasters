@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use levelups::ChanceSpawnTreat;
 
 use crate::{console_log, utils::*};
 
@@ -15,7 +16,10 @@ pub struct PlayerBundle {
     player: Player,
     speed: Speed,
     sprite_bundle: SpriteBundle,
+    xp: Xp,
+    health: Health,
     collider: Collider,
+    treat_chance: ChanceSpawnTreat,
 }
 
 impl PlayerBundle {
@@ -37,6 +41,9 @@ impl PlayerBundle {
             collider: Collider,
             player: Player,
             speed: Speed(150.0),
+            health: Health(10),
+            xp: Xp(0),
+            treat_chance: ChanceSpawnTreat(0),
         }
     }
 }

@@ -1,69 +1,38 @@
-use std::f32::consts::PI;
-
 use bevy::prelude::*;
 use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
 
 use crate::components::{prelude::*, *};
 use crate::utils::logging::*;
-use crate::{console_log, resources::*, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{console_log, resources::*, GameState, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-pub fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    asset_server: Res<AssetServer>,
-    player_data: Res<PlayerData>,
-) {
+pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::Game);
     // Camera
     commands.spawn(Camera2dBundle::default());
 
     // Sound
     // TODO
 
+    // Add player
+    // TODO : Change to scene based start
     commands.spawn(PlayerBundle::new());
-
-    // Add UI Display
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(20.0),
-                height: Val::Percent(20.0),
-                justify_content: JustifyContent::SpaceBetween,
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|parent| {
-            parent.spawn((
-                TextBundle::from_section(
-                    format!(
-                        "Health: {:?}\nScore: {:?}",
-                        player_data.health, player_data.score
-                    ),
-                    TextStyle {
-                        font: asset_server.load("fonts/FFGhost-Regular.ttf"),
-                        font_size: 30.0,
-                        ..Default::default()
-                    },
-                )
-                .with_style(Style {
-                    margin: UiRect::all(Val::Px(5.)),
-                    ..Default::default()
-                }),
-                Label,
-                PlayerDisplay,
-            ));
-        });
 }
 
-pub fn update_ui(mut query: Query<&mut Text, With<PlayerDisplay>>, player_data: Res<PlayerData>) {
+pub fn update_ui(
+    mut query: Query<&mut Text, With<PlayerDisplay>>,
+    player_data_query: Query<(&Xp, &Health), With<Player>>,
+    score: Res<Score>,
+) {
     let mut display_text = query.single_mut();
+    let Ok((xp, health)) = player_data_query.get_single() else {
+        return;
+    };
 
     // Udpate displaye
     display_text.sections[0].value = format!(
-        "Health: {:?}\nScore: {:?}",
-        player_data.health, player_data.score
+        "Health: {:?}\nScore: {:?}\nXp: {:?}",
+        health.0, score.0, xp.0
     );
 }
 
@@ -103,30 +72,31 @@ const ENEMY_SPEED: f32 = 45.0;
 
 pub fn hunt_player(
     mut commands: Commands,
-    player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
+    mut player_query: Query<(&Transform, &mut Health), (With<Player>, Without<Enemy>)>,
     mut enemy_query: Query<
         (&mut Transform, Entity, Option<&Children>),
         (With<Enemy>, Without<Player>),
     >,
     mut enemy_spawner: ResMut<EnemySpawner>,
-    mut player_data: ResMut<PlayerData>,
     scythe_query: Query<&Scythe>,
     time: Res<Time>,
 ) {
-    let player_transform = player_query.single();
+    let Ok((player_transform, mut health)) = player_query.get_single_mut() else {
+        return;
+    };
 
     'enemies: for (mut enemy_transform, enemy, children) in enemy_query.iter_mut() {
         let distance_to_player = enemy_transform
             .translation
             .distance(player_transform.translation);
 
-        if distance_to_player < 30.0 && player_data.health != 0 {
+        if distance_to_player < 30.0 && health.0 != 0 {
             // Close enough to act
             commands.entity(enemy).despawn_recursive();
             enemy_spawner.num_enemies -= 1;
 
             // Take Damage
-            player_data.health -= 1;
+            health.0 -= 1;
         } else if distance_to_player > 120.0 {
             // Move Towards Player
             let diff_vec = player_transform.translation - enemy_transform.translation;
@@ -154,6 +124,7 @@ pub fn add_scythe(
     query: Query<(&Transform, Entity), (With<Player>, Without<Treat>)>,
     mut treat_query: Query<(&mut Transform, Entity), (With<Treat>, Without<Player>)>,
     mut commands: Commands,
+    skill_tracker: Res<SkillTracker>,
     time: Res<Time>,
 ) {
     let (player_transform, player_entity) = query.single();
@@ -170,9 +141,12 @@ pub fn add_scythe(
 
             // Insert as child
             commands.entity(player_entity).with_children(|parent| {
-                parent.spawn((ScytheBundle::new(), TargetsEnemies));
+                parent.spawn((
+                    ScytheBundle::new_with_speed(skill_tracker.get(LevelOptions::ScytheSpeed)),
+                    TargetsEnemies,
+                ));
             });
-        } else if dist_to_player < 50.0 {
+        } else if dist_to_player < skill_tracker.get(LevelOptions::TreatRadius) {
             // Move towards player
             // Move Towards Player
             let diff_vec = treat_transform.translation - player_transform.translation;
@@ -186,15 +160,16 @@ pub fn add_scythe(
     }
 }
 
-const ROT_VEL: f32 = 3.0 * PI / 2.0;
-
 pub fn move_scythe(
-    mut query: Query<&mut Transform, (With<Scythe>, Without<Player>, Without<FlyingAway>)>,
+    mut query: Query<
+        (&mut Transform, &ScytheSpeed),
+        (With<Scythe>, Without<Player>, Without<FlyingAway>),
+    >,
     time: Res<Time>,
 ) {
-    for mut scythe_transform in query.iter_mut() {
+    for (mut scythe_transform, scythe_speed) in query.iter_mut() {
         // Rotate scythe around parent position ROT_VEL * time passed
-        let rot_position = Vec2::from_angle(ROT_VEL * time.delta_seconds())
+        let rot_position = Vec2::from_angle(scythe_speed.0 * time.delta_seconds())
             .rotate(scythe_transform.translation.truncate());
 
         let new_pos = rot_position.extend(0.0);
@@ -202,14 +177,14 @@ pub fn move_scythe(
         // Rotate Around Parent
         scythe_transform.translation = new_pos;
         // Rotate actual scythe
-        scythe_transform.rotate(Quat::from_rotation_z(ROT_VEL * time.delta_seconds()));
+        scythe_transform.rotate(Quat::from_rotation_z(scythe_speed.0 * time.delta_seconds()));
     }
 }
 
 pub fn handle_player_health(
     to_despawn: Query<Entity, Or<(With<Scythe>, With<Enemy>, With<Treat>)>>,
     mut player_query: Query<
-        &mut Transform,
+        (&mut Transform, &mut Xp, &mut Health),
         (
             With<Player>,
             Without<Scythe>,
@@ -218,15 +193,17 @@ pub fn handle_player_health(
         ),
     >,
     mut commands: Commands,
-    mut player_data: ResMut<PlayerData>,
+    mut score: ResMut<Score>,
     mut treat_spawner: ResMut<TreatSpawner>,
     mut enemy_spawner: ResMut<EnemySpawner>,
 ) {
-    let mut player_transform = player_query.single_mut();
+    let Ok((mut player_transform, mut xp, mut health)) = player_query.get_single_mut() else {
+        return;
+    };
 
     // Restart Game if player dies
     // TODO : Whole lot to do for game reset
-    if player_data.health <= 0 {
+    if health.0 <= 0 {
         // Despawn all entities that aren't player
         for entity in &to_despawn {
             console_log!("Despawning {:?}", entity);
@@ -234,8 +211,9 @@ pub fn handle_player_health(
         }
 
         // Reset Data
-        player_data.health = 3;
-        player_data.score = 0;
+        xp.0 = 0;
+        health.0 = 3;
+        score.0 = 0;
 
         treat_spawner.num_treats = 0;
         treat_spawner.counter = 0.0;
@@ -307,11 +285,16 @@ pub fn handle_ally_scythes(
     >,
     enemy_query: Query<(&GlobalTransform, Entity), With<Enemy>>,
     enemy_scythe_query: Query<&Children, With<Enemy>>,
+    mut player_query: Query<&mut Xp, With<Player>>,
     mut enemy_spawner: ResMut<EnemySpawner>,
     mut treat_spawner: ResMut<TreatSpawner>,
-    mut player_data: ResMut<PlayerData>,
+    mut score: ResMut<Score>,
     mut rng: ResMut<GlobalEntropy<WyRand>>,
 ) {
+    let Ok(mut xp) = player_query.get_single_mut() else {
+        return;
+    };
+
     for (enemy_transform, enemy) in enemy_query.iter() {
         // Check if something has already hit this enemy
         let mut collided = false;
@@ -331,7 +314,8 @@ pub fn handle_ally_scythes(
                 enemy_spawner.num_enemies -= 1;
 
                 // Increment Score
-                player_data.score += 1;
+                score.0 += 1;
+                xp.0 += 1;
 
                 // Handle scythe, reduce str
                 scythe.0 -= 1;
@@ -383,10 +367,11 @@ pub fn handle_enemy_scythes(
         (&GlobalTransform, Entity),
         (With<Scythe>, With<TargetsPlayer>, Without<FlyingAway>),
     >,
-    player_query: Query<&GlobalTransform, (With<Player>, Without<Scythe>)>,
-    mut player_data: ResMut<PlayerData>,
+    mut player_query: Query<(&GlobalTransform, &mut Health), (With<Player>, Without<Scythe>)>,
 ) {
-    let player_transform = player_query.single();
+    let Ok((player_transform, mut health)) = player_query.get_single_mut() else {
+        return;
+    };
 
     for (scythe_transform, scythe_entity) in enemy_scythe_query.iter() {
         if scythe_transform
@@ -397,7 +382,7 @@ pub fn handle_enemy_scythes(
             console_log!("Player taking damage");
 
             // Decrement Player Health
-            player_data.health -= 1;
+            health.0 -= 1;
 
             // Handle Scythe
             commands.entity(scythe_entity).despawn();
@@ -407,6 +392,7 @@ pub fn handle_enemy_scythes(
 
 pub fn handle_scythe_collision(
     mut commands: Commands,
+    treat_odds_query: Query<&ChanceSpawnTreat>,
     mut ally_scythe_query: Query<
         (&GlobalTransform, &Transform, &mut Scythe, Entity),
         (
@@ -425,6 +411,8 @@ pub fn handle_scythe_collision(
             Without<FlyingAway>,
         ),
     >,
+    mut rng: ResMut<GlobalEntropy<WyRand>>,
+    mut treat_spawner: ResMut<TreatSpawner>,
 ) {
     for (a_scythe_gt, a_scythe_t, mut ally_scythe_str, ally_scythe) in ally_scythe_query.iter_mut()
     {
@@ -445,17 +433,28 @@ pub fn handle_scythe_collision(
                 // See which scythe loses
                 // Evaluate flying away to loser, decrement strength of winner
                 if ally_scythe_str.0 >= enemy_scythe_str.0 {
-                    console_log!("This is the error 2");
                     commands.entity(enemy_scythe).insert(FlyingAway::new(
                         Vec2::new(e_scythe_t.translation.y, -e_scythe_t.translation.x).extend(0.0),
                     ));
                     ally_scythe_str.0 -= 1;
                 } else {
-                    console_log!("This is the error 3");
                     commands.entity(ally_scythe).insert(FlyingAway::new(
                         Vec2::new(a_scythe_t.translation.y, -a_scythe_t.translation.x).extend(0.0),
                     ));
                     enemy_scythe_str.0 -= 1;
+                }
+
+                // Chance of a treat when scythes collide
+                let treat_odds = treat_odds_query.single();
+
+                if rng.next_u32() % 500 < treat_odds.0 {
+                    treat_spawner.num_treats += 1;
+
+                    // Spawn a Treat in a random place!
+                    commands.spawn(TreatBundle::new_at(
+                        e_scythe_gt.translation(),
+                        (rng.next_u32() % 4) as u8,
+                    ));
                 }
             }
         }
@@ -516,5 +515,27 @@ pub fn treat_spawn(
             pos.extend(0.0),
             (rng.next_u32() % 4) as u8,
         ));
+    }
+}
+
+pub fn apply_levelup(
+    skill_tracker: Res<SkillTracker>,
+    mut scythe_speeds: Query<&mut ScytheSpeed, With<TargetsEnemies>>,
+    mut treat_pickup: Query<&mut TreatPickupRadius, With<Treat>>,
+    mut treat_drop_odds: Query<&mut ChanceSpawnTreat, With<Player>>,
+) {
+    // Check upgrade
+    if skill_tracker.is_changed() {
+        for mut scythe_speed in scythe_speeds.iter_mut() {
+            scythe_speed.0 = skill_tracker.get(LevelOptions::ScytheSpeed);
+        }
+
+        for mut treat_radius in treat_pickup.iter_mut() {
+            treat_radius.0 = skill_tracker.get(LevelOptions::TreatRadius);
+        }
+
+        let mut odds = treat_drop_odds.single_mut();
+
+        odds.0 = skill_tracker.get(LevelOptions::TreatChance) as u32;
     }
 }

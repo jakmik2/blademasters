@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use self::prelude::TreatPickupRadius;
+
 use super::*;
 
 #[derive(Component)]
