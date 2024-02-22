@@ -58,14 +58,14 @@ impl ScytheBundle {
             
             sprite_bundle: SpriteBundle {
                 transform: Transform {
-                    translation: rel_pos.extend(0.0).normalize() * 3.0,
+                    translation: rel_pos.extend(0.0) * 3.0,
                     rotation: match place {
                         // rotate the enemy's blade based on number of scythe
                         // TODO find correct angles and correct PINWHEELING
-                        0 => Quat::from_rotation_z(-PI/2.),
-                        1 => Quat::from_rotation_z(PI/4.),
-                        2 => Quat::from_rotation_z((3.*PI)/4.),
-                        _ => Quat::from_rotation_z(-PI/4.),
+                        0 => Quat::from_rotation_z(7.*PI/4.),
+                        1 => Quat::from_rotation_z(PI/2.),
+                        2 => Quat::from_rotation_z(PI),
+                        _ => Quat::from_rotation_z(PI/2.),
                     },
                     // TODO scale issues
                     scale: Vec2::new(0.5, 0.5).extend(0.0),

@@ -15,7 +15,7 @@ impl Enemy {
     pub fn spawn(
         mut commands: Commands,
         enemy_query: Query<Entity, Added<Enemy>>,
-        mut rng: ResMut<GlobalEntropy<WyRand>>,
+        // mut rng: ResMut<GlobalEntropy<WyRand>>,
         asset_server: Res<AssetServer>,
     ) {
         let Ok(enemy) = enemy_query.get_single() else {
@@ -25,11 +25,15 @@ impl Enemy {
         // Configure the enemy when entity is added to the scene
         console_log!("Adding scythes;");
 
-        let r_off =
-            Vec2::new(rng.next_u32() as f32 % 30.0, rng.next_u32() as f32 % 30.0).normalize();
+        // for simplicity keep first blade at the PI/2 position
+        let r_off = Vec2::new(0.,1.);
+        
+        // V this is what was here before V
+        // Vec2::new(rng.next_u32() as f32 % 30.0, rng.next_u32() as f32 % 30.0).normalize();
 
-        let rot_one = Vec2::from_angle(2.0 * PI / 3.0).rotate(r_off);
-        let rot_two = Vec2::from_angle(4.0 * PI / 3.0).rotate(r_off);
+        // from_angle will normalize vector
+        let rot_one = Vec2::from_angle(5.0 * PI / 4.0);
+        let rot_two = Vec2::from_angle(7.0 * PI / 4.0);
 
         commands.entity(enemy).with_children(|parent| {
             parent.spawn((ScytheBundle::new_at(
@@ -42,13 +46,13 @@ impl Enemy {
                             rot_one,
                             2,
                             1,
-                            asset_server.load("tiny_blades/blade00.png")), TargetsPlayer)
+                            asset_server.load("tiny_blades/blade02.png")), TargetsPlayer)
                         );
             parent.spawn((ScytheBundle::new_at(
                             rot_two,
                             2,
                             2,
-                            asset_server.load("tiny_blades/blade00.png")), TargetsPlayer)
+                            asset_server.load("tiny_blades/blade03.png")), TargetsPlayer)
                         );
         });
     }
