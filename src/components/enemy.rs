@@ -36,19 +36,19 @@ impl Enemy {
                             r_off,
                             2,
                             0,
-                            asset_server.load("blades/blade00.png")), TargetsPlayer)
+                            asset_server.load("tiny_blades/blade00.png")), TargetsPlayer)
                         );
             parent.spawn((ScytheBundle::new_at(
                             rot_one,
                             2,
                             1,
-                            asset_server.load("blades/blade00.png")), TargetsPlayer)
+                            asset_server.load("tiny_blades/blade00.png")), TargetsPlayer)
                         );
             parent.spawn((ScytheBundle::new_at(
                             rot_two,
                             2,
                             2,
-                            asset_server.load("blades/blade00.png")), TargetsPlayer)
+                            asset_server.load("tiny_blades/blade00.png")), TargetsPlayer)
                         );
         });
     }
