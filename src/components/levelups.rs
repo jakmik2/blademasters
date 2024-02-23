@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::{console_log, utils::*};
 
-pub const DEF_VEL: f32 = 3.0 * PI / 2.0;
+pub const DEFAULT_SCYTHYE_VELOCITY: f32 = 3.0 * PI / 2.0;
 
 #[derive(Component, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LevelOptions {
@@ -45,7 +45,7 @@ pub struct ScytheSpeed(pub f32);
 
 impl Default for ScytheSpeed {
     fn default() -> Self {
-        Self(DEF_VEL)
+        Self(DEFAULT_SCYTHYE_VELOCITY)
     }
 }
 

@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
@@ -8,6 +10,7 @@ use crate::{console_log, resources::*, GameState, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
     game_state.set(GameState::Game);
+
     // Camera
     commands.spawn(Camera2dBundle::default());
 
@@ -127,7 +130,9 @@ pub fn add_scythe(
     skill_tracker: Res<SkillTracker>,
     time: Res<Time>,
 ) {
-    let (player_transform, player_entity) = query.single();
+    let Ok((player_transform, player_entity)) = query.get_single() else {
+        return;
+    };
 
     // TODO : This is horribly optimized
     for (mut treat_transform, treat) in treat_query.iter_mut() {
@@ -137,7 +142,7 @@ pub fn add_scythe(
 
         if dist_to_player < 15.0 {
             // Destroy the treat
-            commands.entity(treat).despawn();
+            commands.entity(treat).despawn_recursive();
 
             // Insert as child
             commands.entity(player_entity).with_children(|parent| {
@@ -212,7 +217,7 @@ pub fn handle_player_health(
 
         // Reset Data
         xp.0 = 0;
-        health.0 = 3;
+        health.0 = 10;
         score.0 = 0;
 
         treat_spawner.num_treats = 0;
@@ -320,7 +325,6 @@ pub fn handle_ally_scythes(
                 // Handle scythe, reduce str
                 scythe.0 -= 1;
                 if scythe.0 <= 0 {
-                    console_log!("This is the error 1");
                     commands.entity(scythe_entity).insert(FlyingAway::new(
                         Vec2::new(
                             scythe_transform.translation().y,
@@ -385,7 +389,7 @@ pub fn handle_enemy_scythes(
             health.0 -= 1;
 
             // Handle Scythe
-            commands.entity(scythe_entity).despawn();
+            commands.entity(scythe_entity).despawn_recursive();
         }
     }
 }

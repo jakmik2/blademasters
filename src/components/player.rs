@@ -11,11 +11,38 @@ pub struct Speed(pub f32);
 #[derive(Component)]
 pub struct Player;
 
+impl Player {
+    pub fn spawn(
+        mut commands: Commands,
+        player_query: Query<Entity, Added<Player>>,
+        asset_server: Res<AssetServer>,
+    ) {
+        let Ok(player) = player_query.get_single() else {
+            return;
+        };
+
+        commands.entity(player).with_children(|parent| {
+            parent.spawn(SpriteBundle {
+                transform: Transform {
+                    translation: Vec2::ZERO.extend(0.0),
+                    ..Default::default()
+                },
+                texture: asset_server.load("textures/cats/cat01.png"),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(53., 60.)),
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
+        });
+    }
+}
+
 #[derive(Bundle)]
 pub struct PlayerBundle {
     player: Player,
     speed: Speed,
-    sprite_bundle: SpriteBundle,
+    transform: TransformBundle,
     xp: Xp,
     health: Health,
     collider: Collider,
@@ -26,18 +53,10 @@ impl PlayerBundle {
     pub fn new() -> Self {
         console_log!("Adding Player!");
         Self {
-            sprite_bundle: SpriteBundle {
-                transform: Transform {
-                    translation: Vec2::ZERO.extend(0.0),
-                    scale: Vec2::new(30.0, 30.0).extend(0.0),
-                    ..Default::default()
-                },
-                sprite: Sprite {
-                    color: Color::RED,
-                    ..Default::default()
-                },
+            transform: TransformBundle::from_transform(Transform {
+                translation: Vec2::ZERO.extend(0.0),
                 ..Default::default()
-            },
+            }),
             collider: Collider,
             player: Player,
             speed: Speed(150.0),
