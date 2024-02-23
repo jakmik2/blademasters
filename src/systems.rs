@@ -8,11 +8,7 @@ use crate::components::{prelude::*, *};
 use crate::utils::logging::*;
 use crate::{console_log, resources::*, GameState, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-pub fn setup(
-    mut commands: Commands,
-    mut game_state: ResMut<NextState<GameState>>,
-    asset_server: Res<AssetServer>,
-) {
+pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
     game_state.set(GameState::Game);
 
     // Camera
@@ -23,7 +19,7 @@ pub fn setup(
 
     // Add player
     // TODO : Change to scene based start
-    commands.spawn(PlayerBundle::new(asset_server));
+    commands.spawn(PlayerBundle::new());
 }
 
 pub fn update_ui(
@@ -146,7 +142,7 @@ pub fn add_scythe(
 
         if dist_to_player < 15.0 {
             // Destroy the treat
-            commands.entity(treat).despawn();
+            commands.entity(treat).despawn_recursive();
 
             // Insert as child
             commands.entity(player_entity).with_children(|parent| {
@@ -329,7 +325,6 @@ pub fn handle_ally_scythes(
                 // Handle scythe, reduce str
                 scythe.0 -= 1;
                 if scythe.0 <= 0 {
-                    console_log!("This is the error 1");
                     commands.entity(scythe_entity).insert(FlyingAway::new(
                         Vec2::new(
                             scythe_transform.translation().y,

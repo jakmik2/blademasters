@@ -36,8 +36,9 @@ impl Plugin for GamePlugin {
             (
                 treat_spawn,
                 Enemy::spawn,
-                // Player::spawn,
+                Player::spawn,
                 Scythe::spawn,
+                Treat::spawn,
                 enemy_spawner,
                 add_scythe,
             )
