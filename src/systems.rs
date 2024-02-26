@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 
+use bevy::math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume};
 use bevy::prelude::*;
 use bevy_rand::prelude::{GlobalEntropy, WyRand};
 use rand_core::RngCore;
@@ -187,7 +188,7 @@ pub fn move_scythe(
 }
 
 pub fn handle_player_health(
-    to_despawn: Query<Entity, Or<(With<Scythe>, With<Enemy>, With<Treat>)>>,
+    to_despawn: Query<Entity, Or<(With<Scythe>, With<Enemy>)>>,
     mut player_query: Query<
         (&mut Transform, &mut Xp, &mut Health),
         (
@@ -280,7 +281,7 @@ pub fn handle_ally_scythes(
         ),
     >,
     mut ally_scythe_query: Query<
-        (&GlobalTransform, &mut Scythe, Entity),
+        (&GlobalTransform, &HitBox, &mut Scythe, Entity),
         (
             With<Scythe>,
             With<TargetsEnemies>,
@@ -288,7 +289,7 @@ pub fn handle_ally_scythes(
             Without<FlyingAway>,
         ),
     >,
-    enemy_query: Query<(&GlobalTransform, Entity), With<Enemy>>,
+    enemy_query: Query<(&GlobalTransform, &HitBox, Entity), With<Enemy>>,
     enemy_scythe_query: Query<&Children, With<Enemy>>,
     mut player_query: Query<&mut Xp, With<Player>>,
     mut enemy_spawner: ResMut<EnemySpawner>,
@@ -300,17 +301,19 @@ pub fn handle_ally_scythes(
         return;
     };
 
-    for (enemy_transform, enemy) in enemy_query.iter() {
+    for (enemy_transform, enemy_hb, enemy) in enemy_query.iter() {
         // Check if something has already hit this enemy
         let mut collided = false;
 
-        for (scythe_transform, mut scythe, scythe_entity) in ally_scythe_query.iter_mut() {
-            if !collided
-                && scythe_transform
-                    .translation()
-                    .distance(enemy_transform.translation())
-                    < 30.0
-            {
+        for (scythe_transform, scythe_hb, mut scythe, scythe_entity) in ally_scythe_query.iter_mut()
+        {
+            // Construct Aabb2s
+            let scythe_aabb =
+                Aabb2d::new(scythe_transform.translation().truncate(), scythe_hb.into());
+
+            let enemy_aabb = Aabb2d::new(enemy_transform.translation().truncate(), enemy_hb.into());
+
+            if !collided && scythe_aabb.intersects(&enemy_aabb) {
                 collided = true;
                 console_log!("Collision: {:?}", enemy);
 
@@ -368,21 +371,23 @@ pub fn handle_ally_scythes(
 pub fn handle_enemy_scythes(
     mut commands: Commands,
     enemy_scythe_query: Query<
-        (&GlobalTransform, Entity),
+        (&GlobalTransform, &HitBox, Entity),
         (With<Scythe>, With<TargetsPlayer>, Without<FlyingAway>),
     >,
-    mut player_query: Query<(&GlobalTransform, &mut Health), (With<Player>, Without<Scythe>)>,
+    mut player_query: Query<
+        (&GlobalTransform, &HitBox, &mut Health),
+        (With<Player>, Without<Scythe>),
+    >,
 ) {
-    let Ok((player_transform, mut health)) = player_query.get_single_mut() else {
+    let Ok((player_transform, player_hb, mut health)) = player_query.get_single_mut() else {
         return;
     };
 
-    for (scythe_transform, scythe_entity) in enemy_scythe_query.iter() {
-        if scythe_transform
-            .translation()
-            .distance(player_transform.translation())
-            < 30.0
-        {
+    for (scythe_transform, scythe_hb, scythe_entity) in enemy_scythe_query.iter() {
+        let player_aabb = Aabb2d::new(player_transform.translation().truncate(), player_hb.into());
+        let scythe_aabb = Aabb2d::new(scythe_transform.translation().truncate(), scythe_hb.into());
+
+        if scythe_aabb.intersects(&player_aabb) {
             console_log!("Player taking damage");
 
             // Decrement Player Health
@@ -467,6 +472,7 @@ pub fn handle_scythe_collision(
 
 const FLY_AWAY_TIMEOUT: f32 = 0.25;
 const FLY_AWAY_SPEED: f32 = 10.0;
+const FLY_AWAY_ROT: f32 = PI;
 
 pub fn handle_flying_away(
     mut commands: Commands,
@@ -487,6 +493,8 @@ pub fn handle_flying_away(
             // Move the homie
             flying_scythe_t.translation +=
                 fly_tracker.trajectory * FLY_AWAY_SPEED * time.delta_seconds();
+
+            flying_scythe_t.rotate(Quat::from_rotation_z(FLY_AWAY_ROT * time.delta_seconds()));
         }
     }
 }

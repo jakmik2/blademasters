@@ -5,6 +5,8 @@ use super::*;
 #[derive(Component)]
 pub struct Treat(pub u8);
 
+const SIZE: Vec2 = Vec2::new(16.0, 16.0);
+
 impl Treat {
     pub fn spawn(
         mut commands: Commands,
@@ -16,7 +18,7 @@ impl Treat {
                 parent.spawn(SpriteBundle {
                     texture: asset_server.load("textures/treat.png"),
                     sprite: Sprite {
-                        custom_size: Some(Vec2::new(16.0, 16.0)),
+                        custom_size: Some(SIZE),
                         ..Default::default()
                     },
                     ..Default::default()
@@ -29,7 +31,7 @@ impl Treat {
 #[derive(Bundle)]
 pub struct TreatBundle {
     transform: TransformBundle,
-    collider: Collider,
+    // hit_box: HitBox,
     treat: Treat,
 }
 
@@ -41,7 +43,7 @@ impl TreatBundle {
                 scale: Vec2::ONE.extend(0.0),
                 ..Default::default()
             }),
-            collider: Collider,
+            // hit_box: HitBox::new(Aabb2d::new(position.truncate(), SIZE / 2.0)),
             treat: Treat(str),
         }
     }

@@ -1,4 +1,9 @@
-use bevy::prelude::*;
+use bevy::{
+    gizmos::aabb,
+    math::bounding::{Aabb2d, AabbCast2d, Bounded2d, BoundingVolume},
+    prelude::*,
+    render::primitives::Aabb,
+};
 
 pub mod enemy;
 pub mod flying_away;
@@ -18,7 +23,25 @@ pub mod prelude {
 
 // Common Components
 #[derive(Component)]
-pub struct Collider;
+pub struct HitBox {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl HitBox {
+    pub fn new(dims: Vec2) -> Self {
+        Self {
+            x: dims.x,
+            y: dims.y,
+        }
+    }
+}
+
+impl Into<Vec2> for &HitBox {
+    fn into(self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
+}
 
 #[derive(Component)]
 pub struct Health(pub usize);
@@ -34,3 +57,12 @@ pub struct TargetsEnemies;
 
 #[derive(Component)]
 pub struct TargetsPlayer;
+
+// #[derive(Component)]
+// pub struct HitBox(pub Aabb2d);
+
+// impl HitBox {
+//     pub fn new(shape: Aabb2d) -> Self {
+//         Self(shape)
+//     }
+// }

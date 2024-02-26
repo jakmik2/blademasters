@@ -25,10 +25,10 @@ fn main() {
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        canvas: Some("#combative-survivors-canvas".into()),
-                        ..Default::default()
-                    }),
+                    // primary_window: Some(Window {
+                    //     canvas: Some("#combative-survivors-canvas".into()),
+                    //     ..Default::default()
+                    // }),
                     ..Default::default()
                 })
                 .set(ImagePlugin::default_nearest()),
