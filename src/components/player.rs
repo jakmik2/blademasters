@@ -3,6 +3,8 @@ use levelups::ChanceSpawnTreat;
 
 use crate::{console_log, utils::*};
 
+use self::prelude::*;
+
 use super::*;
 
 #[derive(Component)]

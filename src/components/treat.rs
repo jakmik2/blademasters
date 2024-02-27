@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use self::prelude::*;
+
 use super::*;
 
 #[derive(Component)]
@@ -31,7 +33,7 @@ impl Treat {
 #[derive(Bundle)]
 pub struct TreatBundle {
     transform: TransformBundle,
-    // hit_box: HitBox,
+    hit_box: HitBox,
     treat: Treat,
 }
 
@@ -43,8 +45,8 @@ impl TreatBundle {
                 scale: Vec2::ONE.extend(0.0),
                 ..Default::default()
             }),
-            // hit_box: HitBox::new(Aabb2d::new(position.truncate(), SIZE / 2.0)),
             treat: Treat(str),
+            hit_box: HitBox::new(SIZE / 2.0),
         }
     }
 }

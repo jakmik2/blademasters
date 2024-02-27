@@ -6,7 +6,7 @@ use rand_core::RngCore;
 
 use crate::{console_log, utils::*};
 
-use super::{prelude::ScytheBundle, HitBox, TargetsPlayer};
+use super::{prelude::*, TargetsPlayer};
 
 const DEFAULT_SPRITE_SIZE: Vec2 = Vec2::new(53., 60.);
 

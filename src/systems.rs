@@ -307,13 +307,13 @@ pub fn handle_ally_scythes(
 
         for (scythe_transform, scythe_hb, mut scythe, scythe_entity) in ally_scythe_query.iter_mut()
         {
-            // Construct Aabb2s
-            let scythe_aabb =
-                Aabb2d::new(scythe_transform.translation().truncate(), scythe_hb.into());
-
-            let enemy_aabb = Aabb2d::new(enemy_transform.translation().truncate(), enemy_hb.into());
-
-            if !collided && scythe_aabb.intersects(&enemy_aabb) {
+            if !collided
+                && scythe_hb.intersects(
+                    scythe_transform.translation(),
+                    enemy_hb,
+                    enemy_transform.translation(),
+                )
+            {
                 collided = true;
                 console_log!("Collision: {:?}", enemy);
 
@@ -384,10 +384,11 @@ pub fn handle_enemy_scythes(
     };
 
     for (scythe_transform, scythe_hb, scythe_entity) in enemy_scythe_query.iter() {
-        let player_aabb = Aabb2d::new(player_transform.translation().truncate(), player_hb.into());
-        let scythe_aabb = Aabb2d::new(scythe_transform.translation().truncate(), scythe_hb.into());
-
-        if scythe_aabb.intersects(&player_aabb) {
+        if scythe_hb.intersects(
+            scythe_transform.translation(),
+            player_hb,
+            player_transform.translation(),
+        ) {
             console_log!("Player taking damage");
 
             // Decrement Player Health
@@ -403,7 +404,7 @@ pub fn handle_scythe_collision(
     mut commands: Commands,
     treat_odds_query: Query<&ChanceSpawnTreat>,
     mut ally_scythe_query: Query<
-        (&GlobalTransform, &Transform, &mut Scythe, Entity),
+        (&GlobalTransform, &Transform, &HitBox, &mut Scythe, Entity),
         (
             With<Scythe>,
             With<TargetsEnemies>,
@@ -412,7 +413,7 @@ pub fn handle_scythe_collision(
         ),
     >,
     mut enemy_scythe_query: Query<
-        (&GlobalTransform, &Transform, &mut Scythe, Entity),
+        (&GlobalTransform, &Transform, &HitBox, &mut Scythe, Entity),
         (
             With<Scythe>,
             With<TargetsPlayer>,
@@ -423,18 +424,20 @@ pub fn handle_scythe_collision(
     mut rng: ResMut<GlobalEntropy<WyRand>>,
     mut treat_spawner: ResMut<TreatSpawner>,
 ) {
-    for (a_scythe_gt, a_scythe_t, mut ally_scythe_str, ally_scythe) in ally_scythe_query.iter_mut()
+    for (a_scythe_gt, a_scythe_t, a_scythe_hb, mut ally_scythe_str, ally_scythe) in
+        ally_scythe_query.iter_mut()
     {
         let mut collided = false;
 
-        for (e_scythe_gt, e_scythe_t, mut enemy_scythe_str, enemy_scythe) in
+        for (e_scythe_gt, e_scythe_t, e_scythe_hb, mut enemy_scythe_str, enemy_scythe) in
             enemy_scythe_query.iter_mut()
         {
             if !collided
-                && a_scythe_gt
-                    .translation()
-                    .distance(e_scythe_gt.translation())
-                    < 40.0
+                && a_scythe_hb.intersects(
+                    a_scythe_gt.translation(),
+                    e_scythe_hb,
+                    e_scythe_gt.translation(),
+                )
             {
                 // Don't want repeat collisions
                 collided = true;

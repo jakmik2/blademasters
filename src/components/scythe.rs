@@ -6,10 +6,7 @@ use rand_core::RngCore;
 
 use crate::{console_log, utils::*};
 
-use super::{
-    prelude::{ScytheSpeed, DEFAULT_SCYTHYE_VELOCITY},
-    HitBox,
-};
+use super::prelude::*;
 
 #[derive(Component, Clone, Copy)]
 pub struct Scythe(pub u8);
