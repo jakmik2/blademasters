@@ -6,7 +6,7 @@ use rand_core::RngCore;
 
 use crate::{console_log, utils::*};
 
-use super::{prelude::ScytheBundle, Collider, TargetsPlayer};
+use super::{prelude::*, TargetsPlayer};
 
 const DEFAULT_SPRITE_SIZE: Vec2 = Vec2::new(53., 60.);
 
@@ -55,27 +55,19 @@ impl Enemy {
 
 #[derive(Bundle)]
 pub struct EnemyBundle {
-    collider: Collider,
+    hit_box: HitBox,
     transform: TransformBundle,
     enemy: Enemy,
 }
 
 impl EnemyBundle {
-    pub fn new() -> Self {
-        Self {
-            transform: TransformBundle::from_transform(Transform::default()),
-            collider: Collider,
-            enemy: Enemy,
-        }
-    }
-
     pub fn new_at(position: Vec2) -> Self {
         console_log!("Spawning Enemy!");
         Self {
             transform: TransformBundle::from_transform(Transform::from_xyz(
                 position.x, position.y, 0.0,
             )),
-            collider: Collider,
+            hit_box: HitBox::new(DEFAULT_SPRITE_SIZE / 2.0),
             enemy: Enemy,
         }
     }

@@ -3,7 +3,7 @@
 PROJECT_NAME="combative-survivors"
 
 # Build
-cargo build --target wasm32-unknown-unknown --release --no-default-features
+RUSTFLAGS=--cfg=web_sys_unstable_apis cargo build --target wasm32-unknown-unknown --release --no-default-features
 
 # Generate bindgen outputs
 mkdir -p out
@@ -33,11 +33,6 @@ cat > ./out/index.html <<- EOM
                 }
             });
         </script>
-        <canvas
-            id="combative-survivors-canvas"
-            width="1280"
-            height="720"
-        ></canvas>
     </body>
 </html>
 EOM

@@ -3,6 +3,8 @@ use levelups::ChanceSpawnTreat;
 
 use crate::{console_log, utils::*};
 
+use self::prelude::*;
+
 use super::*;
 
 #[derive(Component)]
@@ -10,6 +12,8 @@ pub struct Speed(pub f32);
 
 #[derive(Component)]
 pub struct Player;
+
+const DEFAULT_SIZE: Vec2 = Vec2::new(53., 60.);
 
 impl Player {
     pub fn spawn(
@@ -29,7 +33,7 @@ impl Player {
                 },
                 texture: asset_server.load("textures/cats/cat01.png"),
                 sprite: Sprite {
-                    custom_size: Some(Vec2::new(53., 60.)),
+                    custom_size: Some(DEFAULT_SIZE),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -41,11 +45,11 @@ impl Player {
 #[derive(Bundle)]
 pub struct PlayerBundle {
     player: Player,
+    hit_box: HitBox,
     speed: Speed,
     transform: TransformBundle,
     xp: Xp,
     health: Health,
-    collider: Collider,
     treat_chance: ChanceSpawnTreat,
 }
 
@@ -57,8 +61,8 @@ impl PlayerBundle {
                 translation: Vec2::ZERO.extend(0.0),
                 ..Default::default()
             }),
-            collider: Collider,
             player: Player,
+            hit_box: HitBox::new(Vec2::new(45.0, 45.0) / 2.0),
             speed: Speed(150.0),
             health: Health(10),
             xp: Xp(0),

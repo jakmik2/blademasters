@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{
-    components::{prelude::*, *},
-    Score,
-};
+use crate::{components::*, Score};
 
 fn add_score_board(
     mut commands: Commands,

@@ -1,15 +1,12 @@
 use std::f32::consts::PI;
 
-use bevy::{gizmos::aabb, prelude::*};
+use bevy::{gizmos::aabb, math::bounding::Aabb2d, prelude::*};
 use bevy_rand::{prelude::WyRand, resource::GlobalEntropy};
 use rand_core::RngCore;
 
 use crate::{console_log, utils::*};
 
-use super::{
-    prelude::{ScytheSpeed, DEFAULT_SCYTHYE_VELOCITY},
-    Collider,
-};
+use super::prelude::*;
 
 #[derive(Component, Clone, Copy)]
 pub struct Scythe(pub u8);
@@ -63,7 +60,7 @@ impl Scythe {
 
 #[derive(Bundle)]
 pub struct ScytheBundle {
-    collider: Collider,
+    hit_box: HitBox,
     transform: TransformBundle,
     scythe: Scythe,
     scythe_speed: ScytheSpeed,
@@ -78,7 +75,7 @@ impl ScytheBundle {
                 translation: rel_pos.extend(0.0).normalize() * dist,
                 ..Default::default()
             }),
-            collider: Collider,
+            hit_box: HitBox::new(Vec2::new(16.0, 32.0) / 2.0),
             scythe: Scythe(str),
             scythe_speed: ScytheSpeed(speed),
         }
