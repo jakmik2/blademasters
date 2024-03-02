@@ -36,12 +36,3 @@ cat > ./out/index.html <<- EOM
     </body>
 </html>
 EOM
-
-
-tst <<- EOM
-<canvas
-    id="combative-survivors-canvas"
-    width="1280"
-    height="720"
-></canvas>
-EOM
