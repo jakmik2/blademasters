@@ -22,17 +22,7 @@ fn main() {
     console_log!("It's working!");
     App::new()
         .insert_resource(AssetMetaCheck::Never)
-        .add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    // primary_window: Some(Window {
-                    //     canvas: Some("#combative-survivors-canvas".into()),
-                    //     ..Default::default()
-                    // }),
-                    ..Default::default()
-                })
-                .set(ImagePlugin::default_nearest()),
-        )
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup_fps_counter)
         .add_systems(Update, (fps_text_update_system, fps_counter_showhide))
