@@ -9,17 +9,10 @@ use crate::components::{prelude::*, *};
 use crate::utils::logging::*;
 use crate::{console_log, resources::*, GameState, SCREEN_HEIGHT, SCREEN_WIDTH};
 
-pub fn setup(mut commands: Commands, mut game_state: ResMut<NextState<GameState>>) {
-    game_state.set(GameState::Game);
-
-    // Camera
-    commands.spawn(Camera2dBundle::default());
-
-    // Sound
-    // TODO
-
+pub fn setup(mut commands: Commands) {
     // Add player
     // TODO : Change to scene based start
+    console_log!("Are we getting here");
     commands.spawn(PlayerBundle::new());
 }
 
@@ -28,7 +21,9 @@ pub fn update_ui(
     player_data_query: Query<(&Xp, &Health), With<Player>>,
     score: Res<Score>,
 ) {
-    let mut display_text = query.single_mut();
+    let Ok(mut display_text) = query.get_single_mut() else {
+        return;
+    };
     let Ok((xp, health)) = player_data_query.get_single() else {
         return;
     };
@@ -45,7 +40,10 @@ pub fn move_player(
     mut query: Query<(&mut Transform, &Speed), With<Player>>,
     time: Res<Time>,
 ) {
-    let (mut player_transform, player_speed) = query.single_mut();
+    let Ok((mut player_transform, player_speed)) = query.get_single_mut() else {
+        return;
+    };
+
     let mut direction = Vec2::ZERO;
 
     if keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft) {
@@ -549,7 +547,9 @@ pub fn apply_levelup(
             treat_radius.0 = skill_tracker.get(LevelOptions::TreatRadius);
         }
 
-        let mut odds = treat_drop_odds.single_mut();
+        let Ok(mut odds) = treat_drop_odds.get_single_mut() else {
+            return;
+        };
 
         odds.0 = skill_tracker.get(LevelOptions::TreatChance) as u32;
     }

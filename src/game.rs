@@ -26,7 +26,6 @@ impl Plugin for GamePlugin {
         })
         .insert_resource(Score(0))
         .insert_resource(SkillTracker::default())
-        .init_state::<GameState>()
         .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins(ScoreboardPlugin)
         .add_systems(Startup, setup)
@@ -82,6 +81,8 @@ impl Plugin for GamePlugin {
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum GameState {
     #[default]
+    Splash,
+    Menu,
     Game,
     Pause,
     LevelUp,

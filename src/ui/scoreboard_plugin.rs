@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{components::*, Score};
+use crate::{components::*, GameState, Score};
 
 fn add_score_board(
     mut commands: Commands,
@@ -55,6 +55,6 @@ pub struct ScoreboardPlugin;
 
 impl Plugin for ScoreboardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, add_score_board);
+        app.add_systems(Startup, add_score_board.run_if(in_state(GameState::Game)));
     }
 }
